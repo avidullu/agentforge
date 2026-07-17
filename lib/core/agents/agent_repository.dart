@@ -1,25 +1,38 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import 'agent_models.dart';
 
+/// Persists the agent registry.
+///
+/// Uses [SharedPreferences] (not secure storage) because agent metadata is not
+/// secret and secure-storage on Flutter **web** is flaky / often fails writes,
+/// which made "Add agent" appear to no-op in the Chrome demo.
 class AgentRepository {
-  AgentRepository({FlutterSecureStorage? storage, Uuid? uuid})
-      : _storage = storage ?? const FlutterSecureStorage(),
+  AgentRepository({SharedPreferences? prefs, Uuid? uuid})
+      : _prefsOverride = prefs,
         _uuid = uuid ?? const Uuid();
 
   static const _kAgents = 'agent_registry_v1';
 
-  final FlutterSecureStorage _storage;
+  final SharedPreferences? _prefsOverride;
   final Uuid _uuid;
 
+  Future<SharedPreferences> _prefs() async =>
+      _prefsOverride ?? await SharedPreferences.getInstance();
+
   Future<List<AgentEntry>> load() async {
-    final raw = await _storage.read(key: _kAgents);
+    final prefs = await _prefs();
+    final raw = prefs.getString(_kAgents);
     return AgentEntry.decodeList(raw);
   }
 
   Future<void> saveAll(List<AgentEntry> agents) async {
-    await _storage.write(key: _kAgents, value: AgentEntry.encodeList(agents));
+    final prefs = await _prefs();
+    final ok = await prefs.setString(_kAgents, AgentEntry.encodeList(agents));
+    if (!ok) {
+      throw StateError('Failed to persist agent registry');
+    }
   }
 
   Future<List<AgentEntry>> upsert(AgentEntry agent) async {

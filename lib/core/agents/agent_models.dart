@@ -53,9 +53,10 @@ class AgentEntry {
       jsonEncode(agents.map((a) => a.toJson()).toList());
 
   static List<AgentEntry> decodeList(String? raw) {
-    if (raw == null || raw.trim().isEmpty) return const [];
+    // Always return a growable list — callers mutate via add/remove.
+    if (raw == null || raw.trim().isEmpty) return <AgentEntry>[];
     final data = jsonDecode(raw);
-    if (data is! List) return const [];
+    if (data is! List) return <AgentEntry>[];
     return data
         .whereType<Map<String, dynamic>>()
         .map(AgentEntry.fromJson)
