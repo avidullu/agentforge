@@ -1,7 +1,8 @@
 # AgentForge — Handoff Document
 
 **Last updated**: 2026-07-18  
-**Status**: Milestones **0–5 implemented** on `main`
+**Status**: Milestones **0–5 implemented** on `main`  
+**Full session handoff**: see [`SESSION_HANDOFF.md`](./SESSION_HANDOFF.md) (bugfix for Add agent + ops)
 
 ---
 
