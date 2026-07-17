@@ -1,23 +1,217 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SettingsScreen extends StatelessWidget {
+import '../../core/forgejo/forgejo_client.dart';
+import '../../core/settings/app_settings.dart';
+import '../../core/settings/settings_providers.dart';
+
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _urlController;
+  late final TextEditingController _tokenController;
+  var _obscureToken = true;
+  var _saving = false;
+  var _testing = false;
+  String? _statusMessage;
+  bool _statusIsError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _urlController = TextEditingController(text: AppSettings.defaultBaseUrl);
+    _tokenController = TextEditingController();
+    // Prefill from storage once loaded.
+    ref.read(settingsProvider.future).then((s) {
+      if (!mounted) return;
+      _urlController.text = s.baseUrl;
+      _tokenController.text = s.token;
+    });
+  }
+
+  @override
+  void dispose() {
+    _urlController.dispose();
+    _tokenController.dispose();
+    super.dispose();
+  }
+
+  AppSettings _fromForm() {
+    return AppSettings(
+      baseUrl: AppSettings.normalizeBaseUrl(_urlController.text),
+      token: _tokenController.text.trim(),
+    );
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      _saving = true;
+      _statusMessage = null;
+    });
+    try {
+      await ref.read(settingsControllerProvider).save(_fromForm());
+      if (!mounted) return;
+      setState(() {
+        _statusMessage = 'Saved.';
+        _statusIsError = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _statusMessage = 'Save failed: $e';
+        _statusIsError = true;
+      });
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _testConnection() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      _testing = true;
+      _statusMessage = null;
+    });
+    try {
+      final client = ForgejoClient(settings: _fromForm());
+      final login = await client.whoAmI();
+      if (!mounted) return;
+      setState(() {
+        _statusMessage = 'Connected as $login';
+        _statusIsError = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _statusMessage = forgejoErrorMessage(e);
+        _statusIsError = true;
+      });
+    } finally {
+      if (mounted) setState(() => _testing = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
-        children: const [
-          ListTile(
-            title: Text('Forgejo Connection'),
-            subtitle: Text('Coming in Milestone 1'),
-          ),
-          ListTile(
-            title: Text('Local Agents'),
-            subtitle: Text('Coming in Milestone 3'),
-          ),
-        ],
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            Text(
+              'Forgejo Connection',
+              style: theme.textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Reachable over Tailscale. Create a personal access token on '
+              'your instance with repo read (and write later for reviews).',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 24),
+            TextFormField(
+              controller: _urlController,
+              decoration: const InputDecoration(
+                labelText: 'Instance URL',
+                hintText: AppSettings.defaultBaseUrl,
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.url,
+              autocorrect: false,
+              validator: (v) {
+                final t = v?.trim() ?? '';
+                if (t.isEmpty) return 'Required';
+                final uri = Uri.tryParse(t);
+                if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+                  return 'Enter a valid URL';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _tokenController,
+              decoration: InputDecoration(
+                labelText: 'Personal access token',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureToken ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscureToken = !_obscureToken),
+                ),
+              ),
+              obscureText: _obscureToken,
+              autocorrect: false,
+              enableSuggestions: false,
+              validator: (v) {
+                if ((v ?? '').trim().isEmpty) return 'Required';
+                return null;
+              },
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                FilledButton(
+                  onPressed: _saving ? null : _save,
+                  child: _saving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Save'),
+                ),
+                const SizedBox(width: 12),
+                OutlinedButton(
+                  onPressed: _testing ? null : _testConnection,
+                  child: _testing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Test connection'),
+                ),
+              ],
+            ),
+            if (_statusMessage != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                _statusMessage!,
+                style: TextStyle(
+                  color: _statusIsError
+                      ? theme.colorScheme.error
+                      : theme.colorScheme.primary,
+                ),
+              ),
+            ],
+            const SizedBox(height: 40),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Local Agents'),
+              subtitle: const Text('Coming in Milestone 3'),
+              leading: Icon(
+                Icons.smart_toy_outlined,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

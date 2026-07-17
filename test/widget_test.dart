@@ -2,18 +2,28 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:agentforge/app.dart';
+import 'package:agentforge/core/settings/app_settings.dart';
+import 'package:agentforge/core/settings/settings_providers.dart';
 import 'package:agentforge/router.dart';
 
 void main() {
   testWidgets('App starts on home without crashing', (WidgetTester tester) async {
     await tester.pumpWidget(
-      const ProviderScope(
-        child: AgentForgeApp(),
+      ProviderScope(
+        overrides: [
+          settingsProvider.overrideWith(
+            (ref) async => const AppSettings(
+              baseUrl: AppSettings.defaultBaseUrl,
+              token: '',
+            ),
+          ),
+        ],
+        child: const AgentForgeApp(),
       ),
     );
-    // google_fonts may trigger async font loading
-    await tester.pump();
-    expect(find.text('AgentForge'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('AgentForge'), findsWidgets);
+    expect(find.text('Connect Forgejo'), findsOneWidget);
   });
 
   testWidgets('Cold-start initialLocation opens PR detail', (WidgetTester tester) async {
@@ -23,14 +33,22 @@ void main() {
           initialLocationProvider.overrideWithValue(
             '/Khelsutra/badminton-highlight-indexer/pulls/611',
           ),
+          settingsProvider.overrideWith(
+            (ref) async => const AppSettings(
+              baseUrl: AppSettings.defaultBaseUrl,
+              token: '',
+            ),
+          ),
         ],
         child: const AgentForgeApp(),
       ),
     );
-    await tester.pump();
-    expect(find.textContaining('Deep Link Received'), findsOneWidget);
-    expect(find.textContaining('Khelsutra/badminton-highlight-indexer #611'), findsOneWidget);
-    expect(find.text('Owner: Khelsutra'), findsOneWidget);
-    expect(find.text('PR Number: 611'), findsOneWidget);
+    await tester.pumpAndSettle();
+    // Unconfigured: AppBar + body both show owner/repo/number
+    expect(
+      find.textContaining('Khelsutra/badminton-highlight-indexer #611'),
+      findsWidgets,
+    );
+    expect(find.textContaining('Connect Forgejo in Settings'), findsOneWidget);
   });
 }

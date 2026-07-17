@@ -1,7 +1,7 @@
 # AgentForge — Handoff Document
 
 **Last updated**: 2026-07-18  
-**Current owner of work**: Next session continues Milestone 1 (or device-verify M0 CUJ)
+**Current owner of work**: Ready for Milestone 2 (formal reviews) or device install
 
 ---
 
@@ -11,57 +11,59 @@ Build a personal Flutter app that lets me review Forgejo PRs (deep-linked from G
 
 ---
 
-## 2. Repository (canonical + remotes)
+## 2. Repository
 
 | Role | Location |
 |------|----------|
-| **Canonical (Forgejo / avis-pbook)** | https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge |
-| **SSH clone** | `forge:avidullu/agentforge.git` |
-| **GitHub (secondary mirror)** | https://github.com/avidullu/agentforge |
-| **Local checkout** | `/home/avidullu/projects/Agent/agentforge` |
-| **Default branch** | `main` |
+| **Canonical** | https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge |
+| **SSH** | `forge:avidullu/agentforge.git` |
+| **GitHub mirror** | https://github.com/avidullu/agentforge |
+| **Local** | `/home/avidullu/projects/Agent/agentforge` |
 
 ```
-origin   forge:avidullu/agentforge.git
-github   https://github.com/avidullu/agentforge.git
+origin → forge:avidullu/agentforge.git
+github → https://github.com/avidullu/agentforge.git
 ```
 
-Flutter SDK on this WSL host: `~/flutter` (add `~/flutter/bin` and `~/bin` to `PATH`; `~/bin/unzip` is a Python shim used to bootstrap Flutter without apt).
+Flutter on this WSL host: `~/flutter` (+ `~/bin` on PATH for the unzip shim).
 
 ---
 
 ## 3. Current Status
 
-### Milestone 0 — Skeleton + Deep Link Ready: **code complete** (device CUJ pending)
+| Milestone | Status |
+|-----------|--------|
+| **0** Skeleton + deep linking | **Code complete** — phone Gmail HTTPS CUJ still needs well-known hosting + device |
+| **1** Forgejo connection + PR list | **Code complete** — Settings (URL+PAT), open PR list, PR detail title/body |
+| **2** Conversation + formal reviews | **Next** |
+| **3–5** Agents / MCP / polish | Planned |
 
-- Flutter project with `android/` + `ios/` (`com.avidullu.agentforge`)
-- Dark Material 3 theme, Home / Settings / PR Detail
-- `go_router` PR routes + **`app_links` cold + warm start**
-- Android App Links intent-filters for `avis-pbook.tail651ec3.ts.net` + `agentforge://` custom scheme
-- iOS `CFBundleURLTypes` + Associated Domains entitlement
-- Unit + widget tests green (`flutter analyze` clean, **10 tests passed**)
-- Hosting templates: `docs/well-known/assetlinks.json`, `apple-app-site-association`
+### Verified on this machine
 
-### Still needed for a fully verified Gmail → App HTTPS CUJ
+- `flutter analyze` clean
+- Unit/widget tests green (16+)
+- Live API smoke against avis-pbook: `whoAmI=avidullu`, open PRs list works with token in `~/.config/forgejo/avis-pbook.token` (do **not** commit the token)
 
-- Host `/.well-known/assetlinks.json` (with real SHA-256) and AASA on avis-pbook
-- Run on a real phone; tap a PR link from Gmail
-- Until then, custom scheme works for dev: `agentforge://pr/owner/repo/42`
+### App usage
 
-### Milestone 1 — Forgejo Connection + PR List: **next**
-
-Not started (or in progress in the next commits).
+1. `flutter run` on a device/emulator (Android SDK not installed on this WSL yet)
+2. Settings → paste PAT → Test connection → Save
+3. Home shows open PRs; tap opens detail with title + description
+4. Deep links: `agentforge://pr/owner/repo/N` or HTTPS after verification
 
 ---
 
-## 4. Immediate Priority
+## 4. Immediate Priority (Milestone 2)
 
-1. **Optional but valuable**: install Android SDK / open project on Windows host, `flutter run`, adb custom-scheme test.
-2. **Milestone 1**:
-   - Settings: Forgejo base URL (default `https://avis-pbook.tail651ec3.ts.net`) + PAT → `flutter_secure_storage`
-   - Thin Forgejo API client (`dio`): list open PRs (user + orgs)
-   - Home screen: real PR list; tap → existing PR Detail route
-3. Then Milestone 2: conversation + formal review actions.
+1. Load PR timeline / comments (`/api/v1/repos/{o}/{r}/issues/{n}/comments` + review comments)
+2. Post a comment
+3. Approve / Request changes via Forgejo review API
+4. Keep review UI dense and dark; agent badges later (M3)
+
+Optional ops (can parallel):
+
+- Host `docs/well-known/assetlinks.json` + AASA on avis-pbook
+- Install Android SDK / run on phone from Windows host
 
 ---
 
@@ -70,50 +72,35 @@ Not started (or in progress in the next commits).
 ```bash
 export PATH="$HOME/bin:$HOME/flutter/bin:$PATH"
 cd /home/avidullu/projects/Agent/agentforge
-flutter pub get
-flutter test
-flutter run   # needs device/emulator + Android/iOS toolchain
-```
-
-Custom-scheme Android smoke (device connected):
-
-```bash
-adb shell am start -a android.intent.action.VIEW \
-  -d "agentforge://pr/Khelsutra/badminton-highlight-indexer/611"
+flutter pub get && flutter test
+flutter run
 ```
 
 ---
 
-## 6. Coding Standards
+## 6. Key code map
 
-- Clear code over cleverness; feature folders under `lib/features/`
-- Shared code in `lib/core/` (and later `lib/shared/`)
-- Riverpod for state; small focused commits; keep `docs/` current
-- Tests for non-trivial logic (see `test/deep_link_test.dart`)
-
----
-
-## 7. Key Design Documents
-
-| File | Content |
-|------|--------|
-| `docs/01-Vision-and-Architecture.md` | Vision |
-| `docs/08-Implementation-Plan-and-Milestones.md` | Milestones + CUJs |
-| `docs/09-Multi-Agent-Coordination.md` | Multi-agent |
-| `docs/DEEP_LINKING.md` | Deep-link ops + verification |
-| `HANDOFF.md` | This file |
+| Path | Role |
+|------|------|
+| `lib/core/deep_links/` | URI → go_router location + warm listener |
+| `lib/core/settings/` | Secure storage for URL + PAT |
+| `lib/core/forgejo/` | dio client, models, providers |
+| `lib/features/home/` | Open PR list |
+| `lib/features/settings/` | Connection form |
+| `lib/features/pr_detail/` | Title + body (reviews next) |
+| `docs/DEEP_LINKING.md` | App Links / AASA ops |
 
 ---
 
-## 8. Suggested Next Prompt
+## 7. Suggested next prompt
 
-> Continue AgentForge Milestone 1: Settings for Forgejo URL + PAT (secure storage), dio client against avis-pbook, and a real open-PR list on Home that navigates to PR Detail. Push to `origin` (Forgejo).
+> Continue AgentForge Milestone 2: load PR conversation/comments from Forgejo, post comments, and Approve / Request Changes. Tests + push to `origin` (Forgejo).
 
 ---
 
-## 9. Success criteria (rolling)
+## 8. Success criteria
 
-- [x] Platforms generated; deep-link parsing + platform config committed
-- [x] `flutter analyze` + tests green
-- [ ] Real-device Gmail HTTPS CUJ (ops: well-known files + phone)
-- [ ] Milestone 1: authenticated PR list from avis-pbook
+- [x] M0 platform + deep-link wiring committed
+- [x] M1 Settings + open PR list + detail body against avis-pbook API
+- [ ] Device install + optional Gmail HTTPS CUJ
+- [ ] M2 formal review actions
