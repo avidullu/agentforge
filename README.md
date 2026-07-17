@@ -11,15 +11,25 @@ Personal Flutter mobile app for reviewing PRs on a Tailscale-connected Forgejo i
 
 ## Status
 
-**Milestone 0** — Project scaffolding + deep linking foundation (in progress).
+**Milestone 0** — Project scaffolding + deep linking foundation (in progress).  
+See [`HANDOFF.md`](./HANDOFF.md) for current gaps and the next-session plan.
+
+## Repository
+
+| | |
+|--|--|
+| **Canonical** | [avis-pbook Forgejo](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge) (`forge:avidullu/agentforge.git`) |
+| **Mirror** | [GitHub](https://github.com/avidullu/agentforge) |
 
 ## Documentation
 
 All design and implementation docs live in the [`docs/`](./docs/) folder.
 
-## Quick Start (once code is ready)
+## Quick Start (once Flutter is installed)
 
 ```bash
+git clone forge:avidullu/agentforge.git
+cd agentforge
 flutter pub get
 flutter run
 ```
