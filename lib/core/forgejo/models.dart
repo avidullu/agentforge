@@ -110,3 +110,69 @@ class PullRequestDetail {
     );
   }
 }
+
+/// Issue/PR conversation comment.
+class IssueComment {
+  const IssueComment({
+    required this.id,
+    required this.body,
+    required this.user,
+    required this.createdAt,
+    this.htmlUrl = '',
+  });
+
+  final int id;
+  final String body;
+  final ForgejoUser user;
+  final DateTime? createdAt;
+  final String htmlUrl;
+
+  factory IssueComment.fromJson(Map<String, dynamic> json) {
+    final created = json['created_at'] as String?;
+    return IssueComment(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      body: (json['body'] ?? '') as String,
+      user: ForgejoUser.fromJson(json['user'] as Map<String, dynamic>?),
+      createdAt: created != null ? DateTime.tryParse(created) : null,
+      htmlUrl: (json['html_url'] ?? '') as String,
+    );
+  }
+}
+
+/// Formal PR review event.
+enum ReviewEvent {
+  comment('COMMENT'),
+  approve('APPROVED'),
+  requestChanges('REQUEST_CHANGES');
+
+  const ReviewEvent(this.apiValue);
+  final String apiValue;
+}
+
+class PullReview {
+  const PullReview({
+    required this.id,
+    required this.state,
+    required this.body,
+    required this.user,
+    this.submittedAt,
+  });
+
+  final int id;
+  final String state;
+  final String body;
+  final ForgejoUser user;
+  final DateTime? submittedAt;
+
+  factory PullReview.fromJson(Map<String, dynamic> json) {
+    final created =
+        json['submitted_at'] as String? ?? json['created_at'] as String?;
+    return PullReview(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      state: (json['state'] ?? '') as String,
+      body: (json['body'] ?? '') as String,
+      user: ForgejoUser.fromJson(json['user'] as Map<String, dynamic>?),
+      submittedAt: created != null ? DateTime.tryParse(created) : null,
+    );
+  }
+}

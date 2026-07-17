@@ -4,8 +4,9 @@ import 'package:timeago/timeago.dart' as timeago;
 
 import '../../core/forgejo/forgejo_client.dart';
 import '../../core/forgejo/forgejo_providers.dart';
+import '../../core/forgejo/models.dart';
 
-class PrDetailScreen extends ConsumerWidget {
+class PrDetailScreen extends ConsumerStatefulWidget {
   final String owner;
   final String repo;
   final int number;
@@ -18,35 +19,115 @@ class PrDetailScreen extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PrDetailScreen> createState() => _PrDetailScreenState();
+}
+
+class _PrDetailScreenState extends ConsumerState<PrDetailScreen> {
+  final _commentController = TextEditingController();
+  var _busy = false;
+
+  PrKey get _key => PrKey(widget.owner, widget.repo, widget.number);
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _run(Future<void> Function() action, {String? success}) async {
+    setState(() => _busy = true);
+    try {
+      await action();
+      if (!mounted) return;
+      if (success != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(success)),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(forgejoErrorMessage(e))),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _postComment() async {
+    final body = _commentController.text.trim();
+    if (body.isEmpty) return;
+    await _run(() async {
+      await ref.read(prActionsProvider).postComment(_key, body);
+      _commentController.clear();
+    }, success: 'Comment posted');
+  }
+
+  Future<void> _review(ReviewEvent event, String label) async {
+    final body = _commentController.text.trim();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(label),
+        content: Text(
+          body.isEmpty
+              ? 'Submit without an additional comment?'
+              : 'Submit with the comment box as the review body?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(label),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _run(() async {
+      await ref.read(prActionsProvider).submitReview(
+            _key,
+            event: event,
+            body: body,
+          );
+      _commentController.clear();
+    }, success: '$label submitted');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final key = PrKey(owner, repo, number);
-    final detailAsync = ref.watch(pullRequestDetailProvider(key));
+    final detailAsync = ref.watch(pullRequestDetailProvider(_key));
+    final commentsAsync = ref.watch(issueCommentsProvider(_key));
+    final reviewsAsync = ref.watch(pullReviewsProvider(_key));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('$owner/$repo #$number'),
+        title: Text('${widget.owner}/${widget.repo} #${widget.number}'),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            onPressed: _busy
+                ? null
+                : () {
+                    ref.invalidate(pullRequestDetailProvider(_key));
+                    ref.invalidate(issueCommentsProvider(_key));
+                    ref.invalidate(pullReviewsProvider(_key));
+                  },
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
       ),
       body: detailAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Could not load PR', style: theme.textTheme.titleLarge),
-              const SizedBox(height: 8),
-              Text(forgejoErrorMessage(e)),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () =>
-                    ref.invalidate(pullRequestDetailProvider(key)),
-                child: const Text('Retry'),
-              ),
-              const SizedBox(height: 24),
-              _DeepLinkFallback(owner: owner, repo: repo, number: number),
-            ],
-          ),
+        error: (e, _) => _ErrorPane(
+          message: forgejoErrorMessage(e),
+          onRetry: () => ref.invalidate(pullRequestDetailProvider(_key)),
+          fallback:
+              '${widget.owner}/${widget.repo} #${widget.number}',
         ),
         data: (detail) {
           if (detail == null) {
@@ -55,15 +136,14 @@ class PrDetailScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Deep link target',
-                    style: theme.textTheme.titleLarge,
-                  ),
+                  Text('Deep link target', style: theme.textTheme.titleLarge),
                   const SizedBox(height: 8),
-                  Text('$owner/$repo #$number'),
+                  Text(
+                    '${widget.owner}/${widget.repo} #${widget.number}',
+                  ),
                   const SizedBox(height: 16),
                   Text(
-                    'Connect Forgejo in Settings to load title, body, and later reviews.',
+                    'Connect Forgejo in Settings to load conversation and reviews.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
@@ -76,47 +156,109 @@ class PrDetailScreen extends ConsumerWidget {
           final s = detail.summary;
           final updated = s.updatedAt;
 
-          return ListView(
-            padding: const EdgeInsets.all(24),
+          return Column(
             children: [
-              if (s.draft)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Chip(
-                    label: const Text('Draft'),
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor:
-                        theme.colorScheme.surfaceContainerHighest,
-                  ),
-                ),
-              Text(s.title, style: theme.textTheme.headlineSmall),
-              const SizedBox(height: 8),
-              Text(
-                [
-                  s.fullName,
-                  '#${s.number}',
-                  s.state,
-                  if (s.user.login.isNotEmpty) 'by ${s.user.login}',
-                  if (updated != null) timeago.format(updated),
-                ].join(' · '),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+                  children: [
+                    if (s.draft)
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Chip(
+                            label: Text('Draft'),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                      ),
+                    Text(s.title, style: theme.textTheme.headlineSmall),
+                    const SizedBox(height: 8),
+                    Text(
+                      [
+                        s.fullName,
+                        '#${s.number}',
+                        s.state,
+                        if (s.user.login.isNotEmpty) 'by ${s.user.login}',
+                        if (updated != null) timeago.format(updated),
+                      ].join(' · '),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.7),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text('Description', style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    SelectableText(
+                      detail.body.trim().isEmpty
+                          ? '(no description)'
+                          : detail.body,
+                      style: theme.textTheme.bodyLarge?.copyWith(height: 1.45),
+                    ),
+                    const SizedBox(height: 28),
+                    Text('Reviews', style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    reviewsAsync.when(
+                      loading: () => const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: LinearProgressIndicator(),
+                      ),
+                      error: (e, _) => Text(forgejoErrorMessage(e)),
+                      data: (reviews) {
+                        if (reviews.isEmpty) {
+                          return Text(
+                            'No formal reviews yet.',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.6),
+                            ),
+                          );
+                        }
+                        return Column(
+                          children: [
+                            for (final r in reviews) _ReviewTile(review: r),
+                          ],
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 28),
+                    Text('Conversation', style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    commentsAsync.when(
+                      loading: () => const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: LinearProgressIndicator(),
+                      ),
+                      error: (e, _) => Text(forgejoErrorMessage(e)),
+                      data: (comments) {
+                        if (comments.isEmpty) {
+                          return Text(
+                            'No comments yet.',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.6),
+                            ),
+                          );
+                        }
+                        return Column(
+                          children: [
+                            for (final c in comments) _CommentTile(comment: c),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24),
-              Text('Description', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 8),
-              SelectableText(
-                detail.body.trim().isEmpty ? '(no description)' : detail.body,
-                style: theme.textTheme.bodyLarge?.copyWith(height: 1.45),
-              ),
-              const SizedBox(height: 32),
-              Text(
-                'Conversation, agent context, and review actions arrive in '
-                'Milestones 2–4.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
+              _ReviewComposer(
+                controller: _commentController,
+                busy: _busy,
+                onPostComment: _postComment,
+                onApprove: () => _review(ReviewEvent.approve, 'Approve'),
+                onRequestChanges: () =>
+                    _review(ReviewEvent.requestChanges, 'Request changes'),
               ),
             ],
           );
@@ -126,22 +268,188 @@ class PrDetailScreen extends ConsumerWidget {
   }
 }
 
-class _DeepLinkFallback extends StatelessWidget {
-  const _DeepLinkFallback({
-    required this.owner,
-    required this.repo,
-    required this.number,
+class _ReviewComposer extends StatelessWidget {
+  const _ReviewComposer({
+    required this.controller,
+    required this.busy,
+    required this.onPostComment,
+    required this.onApprove,
+    required this.onRequestChanges,
   });
 
-  final String owner;
-  final String repo;
-  final int number;
+  final TextEditingController controller;
+  final bool busy;
+  final VoidCallback onPostComment;
+  final VoidCallback onApprove;
+  final VoidCallback onRequestChanges;
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      'Deep link params: owner=$owner repo=$repo number=$number',
-      style: Theme.of(context).textTheme.bodySmall,
+    final theme = Theme.of(context);
+    return Material(
+      elevation: 8,
+      color: theme.colorScheme.surfaceContainerHighest,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                minLines: 2,
+                maxLines: 4,
+                enabled: !busy,
+                decoration: const InputDecoration(
+                  hintText: 'Comment or review body…',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: busy ? null : onPostComment,
+                      child: const Text('Comment'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton.tonal(
+                      onPressed: busy ? null : onRequestChanges,
+                      child: const Text('Request changes'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: busy ? null : onApprove,
+                      child: const Text('Approve'),
+                    ),
+                  ),
+                ],
+              ),
+              if (busy)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: LinearProgressIndicator(),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CommentTile extends StatelessWidget {
+  const _CommentTile({required this.comment});
+
+  final IssueComment comment;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final when = comment.createdAt;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              [
+                if (comment.user.login.isNotEmpty) comment.user.login,
+                if (when != null) timeago.format(when),
+              ].join(' · '),
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 6),
+            SelectableText(
+              comment.body,
+              style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReviewTile extends StatelessWidget {
+  const _ReviewTile({required this.review});
+
+  final PullReview review;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final when = review.submittedAt;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              [
+                if (review.user.login.isNotEmpty) review.user.login,
+                review.state,
+                if (when != null) timeago.format(when),
+              ].join(' · '),
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            if (review.body.trim().isNotEmpty) ...[
+              const SizedBox(height: 6),
+              SelectableText(
+                review.body,
+                style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorPane extends StatelessWidget {
+  const _ErrorPane({
+    required this.message,
+    required this.onRetry,
+    required this.fallback,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+  final String fallback;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Could not load PR',
+              style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(message),
+          const SizedBox(height: 16),
+          FilledButton(onPressed: onRetry, child: const Text('Retry')),
+          const SizedBox(height: 16),
+          Text(fallback, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
     );
   }
 }

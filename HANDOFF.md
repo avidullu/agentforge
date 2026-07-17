@@ -35,8 +35,9 @@ Flutter on this WSL host: `~/flutter` (+ `~/bin` on PATH for the unzip shim).
 |-----------|--------|
 | **0** Skeleton + deep linking | **Code complete** — phone Gmail HTTPS CUJ still needs well-known hosting + device |
 | **1** Forgejo connection + PR list | **Code complete** — Settings (URL+PAT), open PR list, PR detail title/body |
-| **2** Conversation + formal reviews | **Next** |
-| **3–5** Agents / MCP / polish | Planned |
+| **2** Conversation + formal reviews | **Code complete** — comments list/post, reviews list, Approve / Request changes |
+| **3** Agent registry + status | **Next** |
+| **4–5** MCP context / polish | Planned |
 
 ### Verified on this machine
 
@@ -53,17 +54,11 @@ Flutter on this WSL host: `~/flutter` (+ `~/bin` on PATH for the unzip shim).
 
 ---
 
-## 4. Immediate Priority (Milestone 2)
+## 4. Immediate Priority (Milestone 3 + device)
 
-1. Load PR timeline / comments (`/api/v1/repos/{o}/{r}/issues/{n}/comments` + review comments)
-2. Post a comment
-3. Approve / Request changes via Forgejo review API
-4. Keep review UI dense and dark; agent badges later (M3)
-
-Optional ops (can parallel):
-
-- Host `docs/well-known/assetlinks.json` + AASA on avis-pbook
-- Install Android SDK / run on phone from Windows host
+1. **Device**: install Android SDK or run from Windows; `flutter run`; Settings + PAT; smoke Approve on a throwaway PR if desired
+2. **Milestone 3**: agent registry (manual config of MCP base URLs over Tailscale), show which PRs each agent claims
+3. Optional ops: host well-known App Links files on avis-pbook
 
 ---
 
@@ -87,14 +82,14 @@ flutter run
 | `lib/core/forgejo/` | dio client, models, providers |
 | `lib/features/home/` | Open PR list |
 | `lib/features/settings/` | Connection form |
-| `lib/features/pr_detail/` | Title + body (reviews next) |
+| `lib/features/pr_detail/` | Title, body, comments, Approve / Request changes |
 | `docs/DEEP_LINKING.md` | App Links / AASA ops |
 
 ---
 
 ## 7. Suggested next prompt
 
-> Continue AgentForge Milestone 2: load PR conversation/comments from Forgejo, post comments, and Approve / Request Changes. Tests + push to `origin` (Forgejo).
+> Continue AgentForge Milestone 3: agent registry + status (which local agents/machines are working on which PRs), optional MCP connectivity stubs. Or help install Android toolchain and run on a device.
 
 ---
 
@@ -102,5 +97,6 @@ flutter run
 
 - [x] M0 platform + deep-link wiring committed
 - [x] M1 Settings + open PR list + detail body against avis-pbook API
+- [x] M2 comments + Approve / Request changes
 - [ ] Device install + optional Gmail HTTPS CUJ
-- [ ] M2 formal review actions
+- [ ] M3 agent registry

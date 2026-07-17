@@ -49,6 +49,9 @@ void main() {
       find.textContaining('Khelsutra/badminton-highlight-indexer #611'),
       findsWidgets,
     );
-    expect(find.textContaining('Connect Forgejo in Settings'), findsOneWidget);
+    expect(
+      find.textContaining('Connect Forgejo in Settings'),
+      findsOneWidget,
+    );
   });
 }

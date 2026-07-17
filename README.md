@@ -15,8 +15,9 @@ Personal Flutter mobile app for reviewing PRs on a Tailscale-connected Forgejo i
 |-----------|--------|
 | **0** Skeleton + deep linking | Code complete — device Gmail CUJ pending domain verification |
 | **1** Forgejo connection + PR list | Code complete — Settings, open PR list, PR title/body |
-| **2** Conversation + formal reviews | Next |
-| **3–5** Agents, MCP, polish | Planned — see `docs/08-Implementation-Plan-and-Milestones.md` |
+| **2** Conversation + formal reviews | Code complete — comments, Approve / Request changes |
+| **3** Agent registry + status | Next |
+| **4–5** MCP context, polish | Planned — see `docs/08-Implementation-Plan-and-Milestones.md` |
 
 Session state: [`HANDOFF.md`](./HANDOFF.md). Deep-link ops: [`docs/DEEP_LINKING.md`](./docs/DEEP_LINKING.md).
 

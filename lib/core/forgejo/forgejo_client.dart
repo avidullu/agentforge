@@ -78,6 +78,73 @@ class ForgejoClient {
       repo: repo,
     );
   }
+
+  Future<List<IssueComment>> listIssueComments({
+    required String owner,
+    required String repo,
+    required int number,
+  }) async {
+    final res = await _dio.get<List<dynamic>>(
+      '/api/v1/repos/$owner/$repo/issues/$number/comments',
+    );
+    return (res.data ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(IssueComment.fromJson)
+        .toList();
+  }
+
+  Future<IssueComment> createIssueComment({
+    required String owner,
+    required String repo,
+    required int number,
+    required String body,
+  }) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/repos/$owner/$repo/issues/$number/comments',
+      data: {'body': body},
+    );
+    final data = res.data;
+    if (data == null) {
+      throw ForgejoException('Empty comment response');
+    }
+    return IssueComment.fromJson(data);
+  }
+
+  Future<List<PullReview>> listPullReviews({
+    required String owner,
+    required String repo,
+    required int number,
+  }) async {
+    final res = await _dio.get<List<dynamic>>(
+      '/api/v1/repos/$owner/$repo/pulls/$number/reviews',
+    );
+    return (res.data ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .map(PullReview.fromJson)
+        .toList();
+  }
+
+  /// Submit a formal review (approve / request changes / comment-only).
+  Future<PullReview> createPullReview({
+    required String owner,
+    required String repo,
+    required int number,
+    required ReviewEvent event,
+    String body = '',
+  }) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/api/v1/repos/$owner/$repo/pulls/$number/reviews',
+      data: {
+        'body': body,
+        'event': event.apiValue,
+      },
+    );
+    final data = res.data;
+    if (data == null) {
+      throw ForgejoException('Empty review response');
+    }
+    return PullReview.fromJson(data);
+  }
 }
 
 class ForgejoException implements Exception {

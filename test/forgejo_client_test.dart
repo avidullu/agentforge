@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:agentforge/core/forgejo/forgejo_client.dart';
+import 'package:agentforge/core/forgejo/models.dart';
 import 'package:agentforge/core/settings/app_settings.dart';
 
 class _Adapter implements HttpClientAdapter {
@@ -108,5 +109,53 @@ void main() {
     expect(detail.summary.title, 'Detail');
     expect(detail.body, 'Hello body');
     expect(detail.summary.routePath, '/o/r/pulls/9');
+  });
+
+  test('createIssueComment posts body', () async {
+    final dio = Dio(BaseOptions(baseUrl: settings.baseUrl));
+    dio.httpClientAdapter = _Adapter((options) {
+      expect(options.method, 'POST');
+      expect(options.path, '/api/v1/repos/o/r/issues/3/comments');
+      return ResponseBody.fromString(
+        '{"id":10,"body":"hi","user":{"login":"avi"},"created_at":"2026-07-18T00:00:00Z"}',
+        201,
+        headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+        },
+      );
+    });
+    final client = ForgejoClient(settings: settings, dio: dio);
+    final c = await client.createIssueComment(
+      owner: 'o',
+      repo: 'r',
+      number: 3,
+      body: 'hi',
+    );
+    expect(c.id, 10);
+    expect(c.body, 'hi');
+  });
+
+  test('createPullReview posts event', () async {
+    final dio = Dio(BaseOptions(baseUrl: settings.baseUrl));
+    dio.httpClientAdapter = _Adapter((options) {
+      expect(options.method, 'POST');
+      expect(options.path, '/api/v1/repos/o/r/pulls/3/reviews');
+      return ResponseBody.fromString(
+        '{"id":11,"state":"APPROVED","body":"LGTM","user":{"login":"avi"}}',
+        200,
+        headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+        },
+      );
+    });
+    final client = ForgejoClient(settings: settings, dio: dio);
+    final r = await client.createPullReview(
+      owner: 'o',
+      repo: 'r',
+      number: 3,
+      event: ReviewEvent.approve,
+      body: 'LGTM',
+    );
+    expect(r.state, 'APPROVED');
   });
 }
