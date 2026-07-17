@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/forgejo/forgejo_client.dart';
 import '../../core/settings/app_settings.dart';
@@ -204,11 +205,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Local Agents'),
-              subtitle: const Text('Coming in Milestone 3'),
+              subtitle: const Text('Register machines and optional MCP URLs'),
               leading: Icon(
                 Icons.smart_toy_outlined,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                color: theme.colorScheme.primary,
               ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/agents'),
             ),
           ],
         ),

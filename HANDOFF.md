@@ -1,68 +1,60 @@
 # AgentForge — Handoff Document
 
 **Last updated**: 2026-07-18  
-**Current owner of work**: Ready for Milestone 2 (formal reviews) or device install
+**HEAD (approx)**: Milestone 0–3 code on `main` (Forgejo + GitHub)
 
 ---
 
-## 1. Project Goal (one sentence)
+## 1. Project Goal
 
-Build a personal Flutter app that lets me review Forgejo PRs (deep-linked from Gmail) and coordinate local coding agents (Claude / Codex / Gemini / Grok etc.) running on multiple machines over Tailscale via MCP.
+Personal Flutter app to review Forgejo PRs (deep-linked from Gmail) and coordinate local coding agents over Tailscale via MCP.
 
 ---
 
 ## 2. Repository
 
-| Role | Location |
-|------|----------|
-| **Canonical** | https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge |
-| **SSH** | `forge:avidullu/agentforge.git` |
-| **GitHub mirror** | https://github.com/avidullu/agentforge |
-| **Local** | `/home/avidullu/projects/Agent/agentforge` |
-
-```
-origin → forge:avidullu/agentforge.git
-github → https://github.com/avidullu/agentforge.git
-```
-
-Flutter on this WSL host: `~/flutter` (+ `~/bin` on PATH for the unzip shim).
+| | |
+|--|--|
+| Canonical | https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge |
+| SSH | `forge:avidullu/agentforge.git` |
+| GitHub | https://github.com/avidullu/agentforge |
+| Local | `/home/avidullu/projects/Agent/agentforge` |
+| Flutter | `~/flutter` (+ `~/bin` on PATH) |
 
 ---
 
-## 3. Current Status
+## 3. Status
 
 | Milestone | Status |
 |-----------|--------|
-| **0** Skeleton + deep linking | **Code complete** — phone Gmail HTTPS CUJ still needs well-known hosting + device |
-| **1** Forgejo connection + PR list | **Code complete** — Settings (URL+PAT), open PR list, PR detail title/body |
-| **2** Conversation + formal reviews | **Code complete** — comments list/post, reviews list, Approve / Request changes |
-| **3** Agent registry + status | **Next** |
-| **4–5** MCP context / polish | Planned |
+| **0** Deep linking | Code complete — device Gmail HTTPS CUJ needs well-known + phone |
+| **1** Forgejo + PR list | Code complete |
+| **2** Comments + reviews | Code complete (Comment / Approve / Request changes) |
+| **3** Agent registry | Code complete — register agents, optional `/active-work` poll, PR chips |
+| **4** MCP context panel | **Next** — Streamable HTTP MCP client, plan/reasoning/feedback |
+| **5** Polish + multi-machine view | Planned |
 
-### Verified on this machine
-
-- `flutter analyze` clean
-- Unit/widget tests green (16+)
-- Live API smoke against avis-pbook: `whoAmI=avidullu`, open PRs list works with token in `~/.config/forgejo/avis-pbook.token` (do **not** commit the token)
-
-### App usage
-
-1. `flutter run` on a device/emulator (Android SDK not installed on this WSL yet)
-2. Settings → paste PAT → Test connection → Save
-3. Home shows open PRs; tap opens detail with title + description
-4. Deep links: `agentforge://pr/owner/repo/N` or HTTPS after verification
+**Verified**: `flutter analyze` clean; **20** tests passing; live list/whoami against avis-pbook API.
 
 ---
 
-## 4. Immediate Priority (Milestone 3 + device)
+## 4. What to do next
 
-1. **Device**: install Android SDK or run from Windows; `flutter run`; Settings + PAT; smoke Approve on a throwaway PR if desired
-2. **Milestone 3**: agent registry (manual config of MCP base URLs over Tailscale), show which PRs each agent claims
-3. Optional ops: host well-known App Links files on avis-pbook
+### Highest leverage for you (human)
+
+1. Install Android SDK (or open the project on Windows) → `flutter run`
+2. Settings → PAT from Forgejo → Test → Save → browse open PRs
+3. Optional: host `docs/well-known/*` on avis-pbook for verified App Links
+
+### Next agent work (Milestone 4)
+
+1. Real MCP client (Streamable HTTP) against registered agent base URLs
+2. PR detail panel: live plan, recent tools/reasoning, send feedback
+3. Harden active-work discovery beyond `GET …/active-work`
 
 ---
 
-## 5. How to run
+## 5. Run
 
 ```bash
 export PATH="$HOME/bin:$HOME/flutter/bin:$PATH"
@@ -73,30 +65,22 @@ flutter run
 
 ---
 
-## 6. Key code map
+## 6. Code map
 
 | Path | Role |
 |------|------|
-| `lib/core/deep_links/` | URI → go_router location + warm listener |
-| `lib/core/settings/` | Secure storage for URL + PAT |
-| `lib/core/forgejo/` | dio client, models, providers |
-| `lib/features/home/` | Open PR list |
+| `lib/core/deep_links/` | Deep link parse + warm listener |
+| `lib/core/settings/` | Forgejo URL + PAT |
+| `lib/core/forgejo/` | API client + PR/review models |
+| `lib/core/agents/` | Registry + active-work client |
+| `lib/features/home/` | Open PR list + agent chips |
+| `lib/features/pr_detail/` | Detail, comments, review actions |
+| `lib/features/agents/` | Agent CRUD UI |
 | `lib/features/settings/` | Connection form |
-| `lib/features/pr_detail/` | Title, body, comments, Approve / Request changes |
-| `docs/DEEP_LINKING.md` | App Links / AASA ops |
+| `docs/DEEP_LINKING.md` | App Links ops |
 
 ---
 
 ## 7. Suggested next prompt
 
-> Continue AgentForge Milestone 3: agent registry + status (which local agents/machines are working on which PRs), optional MCP connectivity stubs. Or help install Android toolchain and run on a device.
-
----
-
-## 8. Success criteria
-
-- [x] M0 platform + deep-link wiring committed
-- [x] M1 Settings + open PR list + detail body against avis-pbook API
-- [x] M2 comments + Approve / Request changes
-- [ ] Device install + optional Gmail HTTPS CUJ
-- [ ] M3 agent registry
+> Continue AgentForge Milestone 4: MCP Streamable HTTP client for registered agents, show plan/reasoning on PR detail, and a feedback send path. Tests + push to Forgejo origin.

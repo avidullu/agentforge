@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'features/agents/agents_screen.dart';
 import 'features/home/home_screen.dart';
 import 'features/pr_detail/pr_detail_screen.dart';
 import 'features/settings/settings_screen.dart';
@@ -25,6 +26,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/settings',
         name: 'settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/agents',
+        name: 'agents',
+        builder: (context, state) => const AgentsScreen(),
       ),
       // Deep link target for Forgejo PRs
       // Supports both:

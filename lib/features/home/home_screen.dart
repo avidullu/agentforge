@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
+import '../../core/agents/agent_models.dart';
+import '../../core/agents/agent_providers.dart';
 import '../../core/forgejo/forgejo_client.dart';
 import '../../core/forgejo/forgejo_providers.dart';
 import '../../core/forgejo/models.dart';
@@ -20,11 +22,17 @@ class HomeScreen extends ConsumerWidget {
         title: const Text('AgentForge'),
         actions: [
           IconButton(
+            tooltip: 'Agents',
+            icon: const Icon(Icons.smart_toy_outlined),
+            onPressed: () => context.push('/agents'),
+          ),
+          IconButton(
             tooltip: 'Refresh',
             icon: const Icon(Icons.refresh),
             onPressed: () {
               ref.invalidate(openPullRequestsProvider);
               ref.invalidate(settingsProvider);
+              ref.invalidate(agentWorkMapProvider);
             },
           ),
           IconButton(
@@ -101,15 +109,18 @@ class _PullRequestList extends ConsumerWidget {
   }
 }
 
-class _PrTile extends StatelessWidget {
+class _PrTile extends ConsumerWidget {
   const _PrTile({required this.pr});
 
   final PullRequestSummary pr;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final updated = pr.updatedAt;
+    final agents =
+        ref.watch(agentsByPrProvider)['${pr.fullName}#${pr.number}'] ??
+            const <AgentEntry>[];
 
     return ListTile(
       leading: Icon(
@@ -121,14 +132,39 @@ class _PrTile extends StatelessWidget {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
-      subtitle: Text(
-        [
-          '${pr.fullName} #${pr.number}',
-          if (pr.user.login.isNotEmpty) pr.user.login,
-          if (updated != null) timeago.format(updated),
-          if (pr.draft) 'draft',
-        ].join(' · '),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            [
+              '${pr.fullName} #${pr.number}',
+              if (pr.user.login.isNotEmpty) pr.user.login,
+              if (updated != null) timeago.format(updated),
+              if (pr.draft) 'draft',
+            ].join(' · '),
+          ),
+          if (agents.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: [
+                for (final a in agents)
+                  Chip(
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    label: Text(a.name, style: const TextStyle(fontSize: 11)),
+                    avatar: CircleAvatar(
+                      backgroundColor: Color(a.colorArgb),
+                      radius: 8,
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ],
       ),
+      isThreeLine: agents.isNotEmpty,
       onTap: () => context.push(pr.routePath),
     );
   }
