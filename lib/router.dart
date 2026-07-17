@@ -6,9 +6,14 @@ import 'features/home/home_screen.dart';
 import 'features/pr_detail/pr_detail_screen.dart';
 import 'features/settings/settings_screen.dart';
 
+/// Cold-start location from the OS deep link (defaults to `/`).
+final initialLocationProvider = Provider<String>((ref) => '/');
+
 final routerProvider = Provider<GoRouter>((ref) {
+  final initialLocation = ref.watch(initialLocationProvider);
+
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: initialLocation,
     debugLogDiagnostics: true,
     routes: [
       GoRoute(
@@ -31,7 +36,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final owner = state.pathParameters['owner']!;
           final repo = state.pathParameters['repo']!;
-          final number = int.tryParse(state.pathParameters['number'] ?? '') ?? 0;
+          final number =
+              int.tryParse(state.pathParameters['number'] ?? '') ?? 0;
           return PrDetailScreen(
             owner: owner,
             repo: repo,
@@ -45,7 +51,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final owner = state.pathParameters['owner']!;
           final repo = state.pathParameters['repo']!;
-          final number = int.tryParse(state.pathParameters['number'] ?? '') ?? 0;
+          final number =
+              int.tryParse(state.pathParameters['number'] ?? '') ?? 0;
           return PrDetailScreen(
             owner: owner,
             repo: repo,

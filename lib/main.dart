@@ -1,13 +1,32 @@
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
+import 'core/deep_links/deep_link.dart';
+import 'router.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Cold start: if the OS launched us from a PR URL, open that route first.
+  String initialLocation = '/';
+  try {
+    final initialUri = await AppLinks().getInitialLink();
+    final fromLink = deepLinkToLocation(initialUri);
+    if (fromLink != null) {
+      initialLocation = fromLink;
+    }
+  } catch (_) {
+    // Platform channels can fail in tests / unsupported platforms — fall back.
+  }
+
   runApp(
-    const ProviderScope(
-      child: AgentForgeApp(),
+    ProviderScope(
+      overrides: [
+        initialLocationProvider.overrideWithValue(initialLocation),
+      ],
+      child: const AgentForgeApp(),
     ),
   );
 }

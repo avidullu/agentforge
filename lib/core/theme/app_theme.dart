@@ -12,12 +12,12 @@ class AppTheme {
     ),
     scaffoldBackgroundColor: const Color(0xFF0F0F12),
     textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: const Color(0xFF18181B),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.white.withOpacity(0.06)),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
       ),
     ),
     appBarTheme: const AppBarTheme(

@@ -11,8 +11,13 @@ Personal Flutter mobile app for reviewing PRs on a Tailscale-connected Forgejo i
 
 ## Status
 
-**Milestone 0** — Project scaffolding + deep linking foundation (in progress).  
-See [`HANDOFF.md`](./HANDOFF.md) for current gaps and the next-session plan.
+| Milestone | Status |
+|-----------|--------|
+| **0** Skeleton + deep linking | Code complete — device Gmail CUJ pending domain verification |
+| **1** Forgejo connection + PR list | Next |
+| **2–5** Reviews, agents, MCP, polish | Planned — see `docs/08-Implementation-Plan-and-Milestones.md` |
+
+Session state: [`HANDOFF.md`](./HANDOFF.md). Deep-link ops: [`docs/DEEP_LINKING.md`](./docs/DEEP_LINKING.md).
 
 ## Repository
 
@@ -21,17 +26,21 @@ See [`HANDOFF.md`](./HANDOFF.md) for current gaps and the next-session plan.
 | **Canonical** | [avis-pbook Forgejo](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge) (`forge:avidullu/agentforge.git`) |
 | **Mirror** | [GitHub](https://github.com/avidullu/agentforge) |
 
-## Documentation
-
-All design and implementation docs live in the [`docs/`](./docs/) folder.
-
-## Quick Start (once Flutter is installed)
+## Quick Start
 
 ```bash
-git clone forge:avidullu/agentforge.git
-cd agentforge
+export PATH="$HOME/bin:$HOME/flutter/bin:$PATH"   # WSL layout
+git clone forge:avidullu/agentforge.git && cd agentforge
 flutter pub get
+flutter test
 flutter run
+```
+
+Debug deep link (Android):
+
+```bash
+adb shell am start -a android.intent.action.VIEW \
+  -d "agentforge://pr/owner/repo/42"
 ```
 
 ## License

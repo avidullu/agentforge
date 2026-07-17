@@ -27,13 +27,14 @@ class HomeScreen extends StatelessWidget {
             ),
             SizedBox(height: 12),
             Text(
-              'Deep linking is wired.\n\n'
-              'Open a Forgejo PR link from Gmail (or any app) and this app should launch directly to the PR detail screen.',
+              'Deep linking is wired for avis-pbook Forgejo PRs.\n\n'
+              'Open a PR link from Gmail (HTTPS) or try agentforge://pr/owner/repo/42 '
+              'and you should land on the PR detail screen.',
               style: TextStyle(fontSize: 16, height: 1.5),
             ),
             SizedBox(height: 32),
             Text(
-              'Next: connect to your real Forgejo instance (Milestone 1).',
+              'Next after device CUJ: connect to Forgejo API (Milestone 1).',
               style: TextStyle(color: Colors.white54),
             ),
           ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/deep_links/deep_link_listener.dart';
 import 'core/theme/app_theme.dart';
 import 'router.dart';
 
@@ -11,11 +12,14 @@ class AgentForgeApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
 
-    return MaterialApp.router(
-      title: 'AgentForge',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
-      routerConfig: router,
+    return DeepLinkListener(
+      router: router,
+      child: MaterialApp.router(
+        title: 'AgentForge',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.dark,
+        routerConfig: router,
+      ),
     );
   }
 }
