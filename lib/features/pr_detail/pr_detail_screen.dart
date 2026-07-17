@@ -5,6 +5,8 @@ import 'package:timeago/timeago.dart' as timeago;
 import '../../core/forgejo/forgejo_client.dart';
 import '../../core/forgejo/forgejo_providers.dart';
 import '../../core/forgejo/models.dart';
+import '../../core/mcp/mcp_providers.dart';
+import 'agent_context_panel.dart';
 
 class PrDetailScreen extends ConsumerStatefulWidget {
   final String owner;
@@ -116,6 +118,7 @@ class _PrDetailScreenState extends ConsumerState<PrDetailScreen> {
                     ref.invalidate(pullRequestDetailProvider(_key));
                     ref.invalidate(issueCommentsProvider(_key));
                     ref.invalidate(pullReviewsProvider(_key));
+                    ref.invalidate(agentContextProvider(_key));
                   },
             icon: const Icon(Icons.refresh),
           ),
@@ -197,6 +200,10 @@ class _PrDetailScreenState extends ConsumerState<PrDetailScreen> {
                           : detail.body,
                       style: theme.textTheme.bodyLarge?.copyWith(height: 1.45),
                     ),
+                    const SizedBox(height: 28),
+                    Text('Agent context', style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    AgentContextPanel(prKey: _key),
                     const SizedBox(height: 28),
                     Text('Reviews', style: theme.textTheme.titleMedium),
                     const SizedBox(height: 8),

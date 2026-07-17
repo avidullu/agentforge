@@ -213,6 +213,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/agents'),
             ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Coordination'),
+              subtitle: const Text('Active work grouped by repository'),
+              leading: Icon(
+                Icons.hub_outlined,
+                color: theme.colorScheme.primary,
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/coordination'),
+            ),
           ],
         ),
       ),

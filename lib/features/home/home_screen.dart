@@ -10,6 +10,12 @@ import '../../core/forgejo/forgejo_providers.dart';
 import '../../core/forgejo/models.dart';
 import '../../core/settings/settings_providers.dart';
 
+/// Home list filter.
+enum PrListFilter { all, withAgents }
+
+final prListFilterProvider =
+    StateProvider<PrListFilter>((ref) => PrListFilter.all);
+
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -21,6 +27,11 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('AgentForge'),
         actions: [
+          IconButton(
+            tooltip: 'Coordination',
+            icon: const Icon(Icons.hub_outlined),
+            onPressed: () => context.push('/coordination'),
+          ),
           IconButton(
             tooltip: 'Agents',
             icon: const Icon(Icons.smart_toy_outlined),
@@ -74,6 +85,8 @@ class _PullRequestList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final prs = ref.watch(openPullRequestsProvider);
+    final filter = ref.watch(prListFilterProvider);
+    final agentsByPr = ref.watch(agentsByPrProvider);
 
     return prs.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -86,23 +99,71 @@ class _PullRequestList extends ConsumerWidget {
         onSecondary: () => context.push('/settings'),
       ),
       data: (list) {
-        if (list.isEmpty) {
-          return const _MessageBody(
-            title: 'No open pull requests',
-            body: 'Nothing open on repos visible to this token.',
-          );
-        }
-        return RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(openPullRequestsProvider);
-            await ref.read(openPullRequestsProvider.future);
-          },
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: list.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (context, index) => _PrTile(pr: list[index]),
-          ),
+        final filtered = filter == PrListFilter.all
+            ? list
+            : list
+                .where(
+                  (p) =>
+                      (agentsByPr['${p.fullName}#${p.number}'] ?? const [])
+                          .isNotEmpty,
+                )
+                .toList();
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Row(
+                children: [
+                  FilterChip(
+                    label: const Text('All open'),
+                    selected: filter == PrListFilter.all,
+                    onSelected: (_) => ref
+                        .read(prListFilterProvider.notifier)
+                        .state = PrListFilter.all,
+                  ),
+                  const SizedBox(width: 8),
+                  FilterChip(
+                    label: const Text('With agents'),
+                    selected: filter == PrListFilter.withAgents,
+                    onSelected: (_) => ref
+                        .read(prListFilterProvider.notifier)
+                        .state = PrListFilter.withAgents,
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${filtered.length}',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: filtered.isEmpty
+                  ? _MessageBody(
+                      title: filter == PrListFilter.withAgents
+                          ? 'No agent-linked PRs'
+                          : 'No open pull requests',
+                      body: filter == PrListFilter.withAgents
+                          ? 'Register agents and expose /active-work, or switch to All open.'
+                          : 'Nothing open on repos visible to this token.',
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () async {
+                        ref.invalidate(openPullRequestsProvider);
+                        ref.invalidate(agentWorkMapProvider);
+                        await ref.read(openPullRequestsProvider.future);
+                      },
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, index) =>
+                            _PrTile(pr: filtered[index]),
+                      ),
+                    ),
+            ),
+          ],
         );
       },
     );

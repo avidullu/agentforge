@@ -1,86 +1,79 @@
 # AgentForge — Handoff Document
 
 **Last updated**: 2026-07-18  
-**HEAD (approx)**: Milestone 0–3 code on `main` (Forgejo + GitHub)
+**Status**: Milestones **0–5 implemented** on `main`
 
 ---
 
-## 1. Project Goal
+## Goal
 
-Personal Flutter app to review Forgejo PRs (deep-linked from Gmail) and coordinate local coding agents over Tailscale via MCP.
+Personal Flutter app: review Forgejo PRs (deep-linked from Gmail) and coordinate local coding agents over Tailscale via MCP.
 
 ---
 
-## 2. Repository
+## Repository
 
 | | |
 |--|--|
 | Canonical | https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge |
 | SSH | `forge:avidullu/agentforge.git` |
 | GitHub | https://github.com/avidullu/agentforge |
-| Local | `/home/avidullu/projects/Agent/agentforge` |
-| Flutter | `~/flutter` (+ `~/bin` on PATH) |
+| WSL | `/home/avidullu/projects/Agent/agentforge` |
+| Windows demo | `C:\Users\avidu\Projects\agentforge` |
+| Flutter (Windows) | `C:\Users\avidu\flutter` |
+| PAT file | `/home/avidullu/agentforge.pat` (do not commit) |
 
 ---
 
-## 3. Status
+## Milestone status
 
-| Milestone | Status |
-|-----------|--------|
-| **0** Deep linking | Code complete — device Gmail HTTPS CUJ needs well-known + phone |
-| **1** Forgejo + PR list | Code complete |
-| **2** Comments + reviews | Code complete (Comment / Approve / Request changes) |
-| **3** Agent registry | Code complete — register agents, optional `/active-work` poll, PR chips |
-| **4** MCP context panel | **Next** — Streamable HTTP MCP client, plan/reasoning/feedback |
-| **5** Polish + multi-machine view | Planned |
-
-**Verified**: `flutter analyze` clean; **20** tests passing; live list/whoami against avis-pbook API.
+| M | Feature | Status |
+|---|---------|--------|
+| 0 | Deep linking | Done |
+| 1 | Forgejo settings + PR list + detail | Done |
+| 2 | Comments + Approve / Request changes | Done |
+| 3 | Agent registry + active-work badges | Done |
+| 4 | Agent context panel (plan/reasoning/feedback) | Done |
+| 5 | Coordination view + home filters | Done |
 
 ---
 
-## 4. What to do next
+## Run (Windows Chrome demo)
 
-### Highest leverage for you (human)
-
-1. Install Android SDK (or open the project on Windows) → `flutter run`
-2. Settings → PAT from Forgejo → Test → Save → browse open PRs
-3. Optional: host `docs/well-known/*` on avis-pbook for verified App Links
-
-### Next agent work (Milestone 4)
-
-1. Real MCP client (Streamable HTTP) against registered agent base URLs
-2. PR detail panel: live plan, recent tools/reasoning, send feedback
-3. Harden active-work discovery beyond `GET …/active-work`
-
----
-
-## 5. Run
-
-```bash
-export PATH="$HOME/bin:$HOME/flutter/bin:$PATH"
-cd /home/avidullu/projects/Agent/agentforge
-flutter pub get && flutter test
-flutter run
+```powershell
+$env:Path = "C:\Users\avidu\flutter\bin;" + $env:Path
+cd C:\Users\avidu\Projects\agentforge
+git pull
+$ud = "$env:LOCALAPPDATA\agentforge-chrome-dev"
+flutter run -d chrome --web-port=5173 `
+  --web-browser-flag=--disable-web-security `
+  --web-browser-flag=--user-data-dir=$ud
 ```
 
----
+PAT: copy from WSL `clip.exe` via `tr -d '\n\r' < ~/agentforge.pat | clip.exe`, Save in Settings.
 
-## 6. Code map
+### Mock agent side-car (M3–M4 demo)
 
-| Path | Role |
-|------|------|
-| `lib/core/deep_links/` | Deep link parse + warm listener |
-| `lib/core/settings/` | Forgejo URL + PAT |
-| `lib/core/forgejo/` | API client + PR/review models |
-| `lib/core/agents/` | Registry + active-work client |
-| `lib/features/home/` | Open PR list + agent chips |
-| `lib/features/pr_detail/` | Detail, comments, review actions |
-| `lib/features/agents/` | Agent CRUD UI |
-| `lib/features/settings/` | Connection form |
-| `docs/DEEP_LINKING.md` | App Links ops |
+```bash
+# WSL or Windows dart
+cd /home/avidullu/projects/Agent/agentforge   # or Windows path
+dart run tool/mock_agent_server.dart          # http://127.0.0.1:8765
+```
+
+In app → Agents → add agent with MCP URL `http://127.0.0.1:8765`  
+(For phone/other machine use Tailscale IP.)
 
 ---
 
-## 7. Suggested next prompt
+## Agent contract
 
-> Continue AgentForge Milestone 4: MCP Streamable HTTP client for registered agents, show plan/reasoning on PR detail, and a feedback send path. Tests + push to Forgejo origin.
+See `docs/AGENT_MCP_CONTRACT.md`.
+
+---
+
+## Next (optional / ops)
+
+- Android SDK + real device install
+- Host `docs/well-known/*` on avis-pbook for verified App Links
+- Real agent wrappers (Codex/Claude/Grok) implementing the HTTP contract
+- Full MCP Streamable HTTP sessions if side-cars require it
