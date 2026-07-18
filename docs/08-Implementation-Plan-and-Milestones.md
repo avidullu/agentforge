@@ -157,11 +157,16 @@ and the following statements are factually true:
 
 ## Changelog
 
+- **2026-07-18 — AF-016 / PR #3 rev 8 (final-pass review 258):** `docs/11`
+  Evidence is D4-safe (no private host URL); header cleaned to rev 8; AF-016
+  keeps interim Forgejo #3 link in this tracker plus immutable
+  [`7481d77`](https://github.com/avidullu/agentforge/commit/7481d77842f9ba692fdd201eaf76e33c4468421e).
+
 - **2026-07-18 — AF-016 / PR #3 rev 7 (review 256):** Native real gen writes
   only gitignored `*.local.*` / `Runner.entitlements.local` (no overwrite of
   tracked synthetics); Associated Domains path decided; AF-016 evidence is
-  the live Forgejo PR link plus immutable GitHub-mirror commit SHA on the
-  tip. See [docs/11-PII-Redaction.md](11-PII-Redaction.md).
+  the live Forgejo PR link plus immutable GitHub-mirror commit SHA of the immutable substantive rev-7 plan
+  commit (`7481d77`). See [docs/11-PII-Redaction.md](11-PII-Redaction.md).
 
 - **2026-07-18 — AF-016 / PR #3 rev 6 (review 253):** Always-present
   `app_config.selected.dart` (no FS conditional import); tracked synthetic

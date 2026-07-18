@@ -2,31 +2,26 @@
 
 **Type:** Privacy / maintainability / security defect
 
-**Status:** OPEN — revision 5 (addresses review 250 + third-pass leftovers)
+**Status:** OPEN — revision 8 (addresses final-pass review 258)
 
-**Filed:** 2026-07-18 · **Revised:** 2026-07-18 (rev 5)
+**Filed:** 2026-07-18 · **Revised:** 2026-07-18 (rev 8)
 
 **Owner:** repository owner (username omitted from this tracked doc)
 
-**Evidence:** [Forgejo #3](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/3) · [`7481d77`](https://github.com/avidullu/agentforge/commit/7481d77842f9ba692fdd201eaf76e33c4468421e) (Forgejo PR link is interim until AF-015; GitHub commit pins rev-7 plan content). Planning row: **AF-016**.
-(use PR head SHA + GitHub-mirror commit link when the branch is pushed; after
-merge, pin the merge commit). Planning row: **AF-016**.
+**Evidence (D4-safe):** Forgejo #3 @ `7481d77` ·
+[`7481d77` on GitHub mirror](https://github.com/avidullu/agentforge/commit/7481d77842f9ba692fdd201eaf76e33c4468421e)
+(immutable substantive rev-7 plan content; branch tip may include doc-truth
+follow-ups). **Planning row:** AF-016. Clickable interim Forgejo PR URL lives
+only in the canonical tracker `docs/08` until AF-015 redacts private hosts.
 
 ---
 
-> **Revision 7 note.** Review 256 at head `41fbf69` accepts the rev-6
-> architecture and asks for two plan-truth fixes: (1) no escape hatch that
-> overwrites tracked native synthetics—real generation writes only `*.local.*`
-> plus gitignored entitlements; (2) AF-016 row must carry a real PR/evidence
-> link (D4 or interim Forgejo PR link). Also locks Associated Domains to a
-> single path. D1–D4 and rev-6 Dart/native shape unchanged.
-
-> **Revision 5 note.** Review 250 (commit-pinned at `c49c668`, still applicable
-> after rev 4) blocks on: S1 enabling a fail-closed full-tree gate too early;
-> gen-file hygiene (real values must not overwrite tracked synthetic source);
-> iOS xcconfig include chain and RunnerTests identity; honest audit command
-> claims; tracker “D4 rewrite already done” falsehood. Rev 5 corrects those.
-> D1–D4 unchanged. Prior rev-4 P0/P1 public-tree hygiene is retained.
+> **Revision 8 note.** Final-pass review (258) at head `9ef9136` confirmed
+> review-256 architecture is resolved, then asked for two doc-truth fixes:
+> (1) `docs/11` must not embed the private Forgejo/Tailscale host in Evidence;
+> (2) header still said rev 5 and had duplicated/stale evidence sentences;
+> changelog should not call `7481d77` the branch tip. This revision applies
+> those only. Architecture from rev 6–7 is unchanged.
 
 ## 1. Summary
 
@@ -609,15 +604,23 @@ here.
 | 3 | Structural gate forbids synthetic HTTPS | Rule = only exact synthetic origin + loopback fixtures (§8.1 public gate) |
 | 4 | Stale AF-016 evidence SHA | Tracker points at current tip / pending merge pin (§10, docs/08) |
 
-## 13. Requested re-review (rev 7)
+### Review 258 (head `9ef9136`; rev 8)
+
+| # | Finding | Resolution in rev 8 |
+|---|---|---|
+| 1 | `docs/11` Evidence embeds private host | D4-safe evidence: plain Forgejo #3 @ SHA + GitHub-mirror link only; clickable private PR URL only in docs/08 interim |
+| 2 | Header still rev 5; stale tip wording | Header = rev 8; evidence collapsed to one statement; `7481d77` described as immutable substantive rev-7 plan commit |
+
+## 13. Requested re-review (rev 8)
 
 Please re-review exact PR tip after this revision.
 
-**Checklist for LGTM (review 256)**
+**Checklist for LGTM (review 258)**
 
-- [x] No native escape hatch overwriting tracked synthetics
-- [x] Single Associated Domains / CODE_SIGN_ENTITLEMENTS path
-- [x] AF-016 row has real PR + immutable commit evidence
+- [x] `docs/11` Evidence has **no** private Tailscale/Forgejo host URL
+- [x] Header status/revised = rev 8; single evidence statement
+- [x] `7481d77` described as immutable substantive rev-7 plan commit (not “branch tip”)
+- [x] AF-016 tracker row keeps clickable PR evidence in `docs/08` (interim until AF-015)
 
 On LGTM: merge AF-016 → fast-forward GitHub mirror → branch AF-009 from
 fresh `origin/main`.
