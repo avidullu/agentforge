@@ -47,7 +47,7 @@ makes both runner observability and exact-check enforcement first-class.
 
 | Row | Independently shippable deliverable | Status | Dependency / gate | PR / evidence |
 |---|---|---|---|---|
-| AF-018-A | Deterministic quality/build lanes, observable long commands, generated/lock cleanliness, 35.5% global + 80% changed-line coverage, bounded Gradle, exact Android SDK repair, stable required status, unsafe AF-009 test removal | **LOCAL GATES GREEN — PR PENDING** | Re-cut from current `origin/main`; exact-head Forgejo required context green | — |
+| AF-018-A | Deterministic quality/build lanes, observable long commands, generated/lock cleanliness, 35.5% global + 80% changed-line coverage, bounded Gradle, exact Android SDK repair, stable required status, unsafe AF-009 test removal | **READY FOR REVIEW** | Exact-head Forgejo required context green; branch protection after the context exists | Pending Forgejo PR creation |
 | AF-018-B | Required high-risk widget, semantics, keyboard, 200% text, and failure-state contracts | **PLANNED** | AF-006 A2 design primitives; AF-018-A | — |
 | AF-018-C | Hermetic loopback transport tests for Forgejo/MCP pagination, auth, redirects, timeouts, retries, malformed data, and idempotency | **PLANNED** | AF-004 protocol decisions; AF-018-A | — |
 | AF-018-D | Pinned-font golden/semantics matrix with manual, reviewable updates | **PLANNED** | AF-006 implementation screens; AF-018-B | — |
@@ -149,6 +149,11 @@ gates.
   `docs/archives/past_projects/` with its lineage preserved.
 
 ## Changelog
+
+- **2026-07-18 — AF-018-A fresh-base checkpoint:** Replayed the independently
+  reviewed candidate onto fresh `origin/main` `0a42295`, indexed this tracker
+  from the repository-wide project ledger, and retained the 97-test/35.92%
+  local evidence. Publication and exact-head Forgejo CI remain open gates.
 
 - **2026-07-18 — AF-018-A local gates green:** The candidate passed Dart
   formatting, fatal-info analysis, 97 randomized tests, unchanged 573/1595

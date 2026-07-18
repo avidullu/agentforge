@@ -93,6 +93,7 @@ update its owning tracker row and changelog.
 | AF-014 | PII redaction S6: iOS `AgentForge.xcconfig` include chain; preserve RunnerTests bundle id; entitlement host; `-showBuildSettings` both targets | **PLANNED** | AF-011 | — |
 | AF-015 | PII redaction S7: docs/handoff redaction + Forgejo-PR-link rewrite (SHA + GitHub mirror) + `docs/CONFIGURATION.md` + well-known templates/render + tracked-`web/` sweep | **PLANNED** | AF-010, AF-012, AF-013, AF-014 | — |
 | AF-017 | OpenAI Build Week submission (multi-PR): judge-safe synthetic demo, coherent golden path, Codex/GPT-5.6 evidence, hosted test build, media and compliance | **IN PROGRESS** | Owner license/model/session/hosting actions; hard deadline 2026-07-22 05:30 IST | [AF-017 tracker](projects/AF-017-OpenAI-Build-Week-Submission.md) |
+| AF-018 | CI regression hardening (multi-PR): deterministic quality/build lanes, observable heartbeats, coverage ratchets, Android SDK safety, and high-risk UI/transport/device gates | **IN PROGRESS — A READY FOR REVIEW** | AF-018-A exact-head required context; branch protection after the context exists | [AF-018 tracker](projects/AF-018-CI-Regression-Hardening.md) |
 
 > **PII redaction dependency note (rev 3).** Each branch starts from a
 > fresh `origin/main` after its dependencies merge (topological, not
@@ -166,6 +167,16 @@ and the following statements are factually true:
    endpoint, analytics and device work.
 
 ## Changelog
+
+- **2026-07-18 — AF-018-A READY FOR REVIEW:** Added the canonical multi-PR CI
+  regression-hardening tracker and its first candidate. Local evidence on a
+  fresh `origin/main` base includes clean formatting/fatal-info analysis,
+  97 randomized tests, unchanged 573/1595 (35.92%) line coverage, pinned
+  Actions, generated/lockfile cleanliness, 35.5% global plus 80% changed-line
+  coverage gates, observable process-group heartbeats, exact Android SDK
+  repair/containment smokes, and debug APK/release Web lanes. Merge remains
+  gated on the exact Forgejo PR head reporting the stable required context;
+  branch protection is intentionally deferred until that context exists.
 
 - **2026-07-18 — AF-010 / S2 IN REVIEW:** Origin-bound PAT storage
   (`forgejo_token::<normalizedOrigin>`), legacy unscoped `forgejo_token`
