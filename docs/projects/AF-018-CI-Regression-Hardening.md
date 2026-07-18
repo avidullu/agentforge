@@ -47,7 +47,7 @@ makes both runner observability and exact-check enforcement first-class.
 
 | Row | Independently shippable deliverable | Status | Dependency / gate | PR / evidence |
 |---|---|---|---|---|
-| AF-018-A | Deterministic quality/build lanes, observable long commands, generated/lock cleanliness, 35.5% global + 80% changed-line coverage, bounded Gradle, exact Android SDK repair, stable required status, unsafe AF-009 test removal | **IN REVIEW — CI PENDING** | Exact-head Forgejo required context green; branch protection after the context exists | Forgejo #13 |
+| AF-018-A | Deterministic quality/build lanes, observable long commands, generated/lock cleanliness, 35.5% global + 80% changed-line coverage, bounded Gradle, exact Android SDK repair, stable required status, unsafe AF-009 test removal | **IN REVIEW — CANCELLATION FOLLOW-UP** | Merge the stacked cancellation checkpoint; then require exact-head Forgejo CI green before #13 merges | Forgejo #13; follow-up PR pending publication |
 | AF-018-B | Required high-risk widget, semantics, keyboard, 200% text, and failure-state contracts | **PLANNED** | AF-006 A2 design primitives; AF-018-A | — |
 | AF-018-C | Hermetic loopback transport tests for Forgejo/MCP pagination, auth, redirects, timeouts, retries, malformed data, and idempotency | **PLANNED** | AF-004 protocol decisions; AF-018-A | — |
 | AF-018-D | Pinned-font golden/semantics matrix with manual, reviewable updates | **PLANNED** | AF-006 implementation screens; AF-018-B | — |
@@ -132,6 +132,9 @@ gates.
   outdated heads, and applies the rule to administrators.
 - [ ] Long operations show timestamped progress at least every 30 seconds and
   finish with elapsed time and artifact evidence.
+- [ ] TERM/INT cancellation reaches the actual command process group, waits a
+  bounded grace period, leaves no live descendants, and preserves ordinary
+  command exit status; a forced-fork Linux regression test enforces this.
 - [ ] Lock, generated config, formatting, fatal analysis, the full randomized
   suite, global coverage, changed-line coverage, Web, APK, Android lint,
   shell syntax, and tree cleanliness are required.
@@ -149,6 +152,17 @@ gates.
   `docs/archives/past_projects/` with its lineage preserved.
 
 ## Changelog
+
+- **2026-07-18 — AF-018-A cancellation checkpoint:** Forgejo runner failures
+  exposed incompatible `setsid --wait` behavior and an early-cancellation race
+  while the real process group was still being discovered. The stacked
+  `codex/af018-cancellation-checkpoint` branch preserves the portable plain
+  `setsid` fallback while deferring TERM/INT across startup, recording the
+  actual PGID, ignoring zombie-only groups, and failing closed when isolation
+  or exit-status observation is unavailable. It also rejects SDK package paths
+  redirected by symlinks to unrelated directories inside the SDK root. Fresh
+  WSL smokes, formatting, fatal-info analysis, and 23 focused Dart tests pass;
+  full exact-head Forgejo CI remains the merge gate.
 
 - **2026-07-18 — AF-018-A IN REVIEW:** Opened ready-for-review Forgejo #13
   from `codex/af018-ci-hardening` and mirrored the branch to GitHub. The exact
