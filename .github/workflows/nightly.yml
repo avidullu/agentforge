@@ -1,0 +1,65 @@
+name: Nightly
+
+# Android SDK install + debug APK + lint are too expensive and redundant for
+# every PR/push CI on a capacity-constrained self-hosted runner. They run here
+# on a schedule (and on-demand via workflow_dispatch).
+#
+# See Forgejo issue filed with this change (AF-018 Android CI policy).
+
+on:
+  schedule:
+    # 18:30 UTC ≈ 00:00 IST next day
+    - cron: '30 18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agentforge-nightly
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: '3.44.6'
+  AGENTFORGE_CONFIG: config/agentforge.config.example.json
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  android_smoke:
+    name: android-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: false
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android command-line tools
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
+        with:
+          cmdline-tools-version: '14742923'
+          accept-android-sdk-licenses: 'true'
+          log-accepted-android-sdk-licenses: 'false'
+          packages: ''
+
+      # Full Android path: install/validate packages + debug APK + lintDebug.
+      - name: Android product steps (local harness)
+        run: bash tool/ci/run_local_ci.sh --lane android-smoke

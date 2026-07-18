@@ -5,70 +5,91 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+# This repository shares a 15 GiB Forgejo runner. Queue runs instead of
+# allowing concurrent Gradle/SDK installs to corrupt partial packages or
+# exhaust the host. workflow_dispatch provides a real retry button.
+concurrency:
+  group: agentforge-ci
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: '3.44.6'
+  TEST_RANDOM_SEED: '424242'
+  LINE_COVERAGE_FLOOR: '35.5'
+  DIFF_COVERAGE_FLOOR: '80'
+  # Never inherit a persistent runner's private/local config selection.
+  AGENTFORGE_CONFIG: config/agentforge.config.example.json
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  analyze-and-test:
+  quality:
+    name: quality
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
+      - name: Check out exact revision
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Set up Android SDK 36
-        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
-        with:
-          packages: >-
-            platform-tools platforms;android-36 build-tools;36.0.0
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
-          flutter-version: '3.44.6'
-          # Disable actions/cache: runner has intermittent Invalid username/token
-          # when fetching github.com/actions/cache (PR #3 review 260; PR #7 runs
-          # 37/38 failed at ~5m before any repo checks). Prefer download over red CI.
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          # Forgejo's cache service currently rejects actions/cache auth.
           cache: false
 
-      - name: Install dependencies
-        run: flutter pub get
+      # Single source of truth: same script developers run locally.
+      # Debug reds with: bash tool/ci/run_local_ci.sh --lane quality
+      - name: Quality product steps (local harness)
+        run: bash tool/ci/run_local_ci.sh --lane quality
 
-      - name: Generate config (tracked synthetic)
-        run: dart run tool/generate_config.dart
+  # Web-only. Android SDK install + APK + lint live in nightly.yml (see AF-018 bug).
+  build_smoke:
+    name: build-smoke
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
 
-      # Prevent "generate then rewrite" from masking stale/private committed gens.
-      - name: Generated tracked outputs match HEAD
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: false
+
+      - name: Build-smoke product steps (web only; no Android SDK)
+        run: bash tool/ci/run_local_ci.sh --lane build-smoke
+
+  required:
+    name: required
+    if: ${{ always() }}
+    needs: [quality, build_smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Aggregate required CI result
         run: |
-          git diff --exit-code -- \
-            lib/core/config/generated/app_config.selected.dart \
-            agentforge-config.properties \
-            ios/Flutter/AgentForge.xcconfig
-
-      - name: Analyze
-        run: flutter analyze --fatal-infos
-
-      - name: Check formatting
-        run: dart format --output=none --set-exit-if-changed lib test tool
-
-      - name: Test with coverage
-        run: flutter test --coverage
-
-      - name: Enforce coverage floor
-        run: dart run tool/check_coverage.dart coverage/lcov.info 29
-
-      - name: PII guard (report-only on real tree; never fail-closed here)
-        run: dart run tool/check_no_pii.dart --mode=report --scope=tracked
-        # Fail-closed full-tree blocklist is AF-015 / S7 only (docs/11 §8.0).
-
-      - name: Build Android debug APK
-        run: flutter build apk --debug
-
-      - name: Build web release
-        run: flutter build web --release --no-wasm-dry-run
+          set -Eeuo pipefail
+          quality='${{ needs.quality.result }}'
+          build_smoke='${{ needs.build_smoke.result }}'
+          printf '[%s] quality=%s build-smoke=%s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$quality" "$build_smoke"
+          [[ "$quality" == success ]]
+          [[ "$build_smoke" == success ]]

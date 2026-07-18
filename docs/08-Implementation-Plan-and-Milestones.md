@@ -93,7 +93,7 @@ update its owning tracker row and changelog.
 | AF-014 | PII redaction S6: iOS `AgentForge.xcconfig` include chain; preserve RunnerTests bundle id; entitlement host; `-showBuildSettings` both targets | **PLANNED** | AF-011 | — |
 | AF-015 | PII redaction S7: docs/handoff redaction + Forgejo-PR-link rewrite (SHA + GitHub mirror) + `docs/CONFIGURATION.md` + well-known templates/render + tracked-`web/` sweep | **PLANNED** | AF-010, AF-012, AF-013, AF-014 | — |
 | AF-017 | OpenAI Build Week submission (multi-PR): judge-safe synthetic demo, coherent golden path, Codex/GPT-5.6 evidence, hosted test build, media and compliance | **IN PROGRESS** | Owner license/model/session/hosting actions; hard deadline 2026-07-22 05:30 IST | [AF-017 tracker](projects/AF-017-OpenAI-Build-Week-Submission.md) |
-| AF-018 | CI regression hardening (multi-PR): deterministic quality/build lanes, observable heartbeats, coverage ratchets, Android SDK safety | **IN PROGRESS — A OPEN** | Forgejo #13 tip pending green quality CI | [AF-018 tracker](projects/AF-018-CI-Regression-Hardening.md) · [Forgejo #13](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/13) |
+| AF-018 | CI regression hardening (multi-PR): deterministic quality/build lanes, observable heartbeats, coverage ratchets, Android SDK safety | **IN REVIEW — A READY (local green)** | Forgejo #16 stacked into #13 tip; await exact-head green then merge | [AF-018 tracker](projects/AF-018-CI-Regression-Hardening.md) · Forgejo #13 · Forgejo #16 |
 
 > **PII redaction dependency note (rev 3).** Each branch starts from a
 > fresh `origin/main` after its dependencies merge (topological, not
@@ -167,6 +167,17 @@ and the following statements are factually true:
    endpoint, analytics and device work.
 
 ## Changelog
+
+- **2026-07-18 — AF-018 cancellation follow-up checkpoint:** A stacked branch
+  now owns forced-fork startup cancellation, portable plain-`setsid` status
+  propagation, zombie-aware cleanup, exact SDK canonical deletion targets, and
+  Linux regressions. Forgejo #16 is open ready-for-review; Forgejo #13 still
+  requires its final exact-head CI before merge.
+
+- **2026-07-18 — AF-018 CI policy:** PR/push CI no longer installs Android
+  SDK packages or builds APKs. `build-smoke` is Web-only; Android SDK +
+  debug APK + lint run on `.github/workflows/nightly.yml` (schedule +
+  workflow_dispatch). Tracked as a policy bug/issue on Forgejo.
 
 - **2026-07-18 — AF-010 / S2 SHIPPED:** Merged Forgejo #10 as `0a42295`
   from tip `6dd4b84`. Origin-bound PAT storage
