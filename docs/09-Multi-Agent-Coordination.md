@@ -1,43 +1,52 @@
-# Multi-Agent & Multi-Machine Coordination
+# Multi-agent and multi-machine coordination
 
-**Core requirement**
+**Status:** UI prototype implemented; durable coordination semantics open.
 
-The app must make it easy to:
-1. See which PRs each local coding agent is currently working on.
-2. Connect / relate work happening on the **same repository** across multiple machines/agents.
+## Goal
 
-## Goals
+Show fresh, attributable work per trusted endpoint and relate work on the same
+Forgejo repository without mistaking self-reported activity for Git truth.
 
-- Any agent can report “I am currently working on these PRs / this branch”.
-- The mobile app shows a clear picture of active work per agent and per repository.
-- User can easily link related efforts across machines.
+## Identity and source of truth
 
-## Recommended Approach
+- Forgejo/Git is authoritative for repository, branch, PR, and head state.
+- Endpoint records use stable `agentEndpointId` and `hostId`; display names are
+  presentation only.
+- PR records use `forgeInstanceId`, owner, repo, number, and head SHA.
+- Self-reported work is presence/context, not proof of authorship.
+- Durable provenance should use a Forgejo-backed marker or another auditable
+  record bound to the authenticated endpoint and exact head.
 
-### Agent-side (MCP)
+## Freshness and health
 
-Expose:
+An active-work item must include `status` and `updated_at`. The prototype admits
+only active/working/in-progress records no older than five minutes.
 
-- Resource / tool: `work/list` or `resource://active-work`
-  ```json
-  [
-    {
-      "repo": "owner/repo",
-      "pr_number": 42,
-      "branch": "feature/auth-middleware",
-      "title": "Implement auth middleware",
-      "status": "in_progress",
-      "updated_at": "..."
-    }
-  ]
-  ```
+The complete UI must preserve per-endpoint states:
 
-### App-side
+- loading
+- online/idle
+- online/working
+- stale
+- unreachable/offline
+- authentication or protocol failure
+- malformed response
+- partial failure while other endpoints remain usable
 
-- Home + Agents screens show “Currently working on” per agent.
-- Repo-centric view shows all agents active on that repo.
-- PR Detail shows “Related work on other machines” when applicable.
+An error is never “no active work.” Retain last-known data with a stale label,
+timestamp, and retry where safe.
 
-## Principle
+## Required views
 
-Keep it lightweight. The app is a visibility + light coordination layer. Source of truth remains Git + Forgejo.
+- Home: PR badges for fresh, explicitly associated endpoints.
+- Endpoint registry: identity, host, trust/pairing, capability, health, last
+  heartbeat, current work, and revoke/edit/test actions.
+- Coordination: repository groups with exact branches/heads, conflicts or
+  overlaps, and partial-failure visibility.
+- PR detail: claimed/linked endpoints only, with explicit destination before
+  sharing context or sending feedback.
+
+## Transport
+
+See [`AGENT_MCP_CONTRACT.md`](AGENT_MCP_CONTRACT.md). Remote endpoints require
+authenticated HTTPS. The loopback mock is a local UI-development aid only.

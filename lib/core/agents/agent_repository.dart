@@ -10,8 +10,8 @@ import 'agent_models.dart';
 /// which made "Add agent" appear to no-op in the Chrome demo.
 class AgentRepository {
   AgentRepository({SharedPreferences? prefs, Uuid? uuid})
-      : _prefsOverride = prefs,
-        _uuid = uuid ?? const Uuid();
+    : _prefsOverride = prefs,
+      _uuid = uuid ?? const Uuid();
 
   static const _kAgents = 'agent_registry_v1';
 
@@ -48,7 +48,8 @@ class AgentRepository {
   }
 
   Future<List<AgentEntry>> remove(String id) async {
-    final list = await load()..removeWhere((a) => a.id == id);
+    final list = await load()
+      ..removeWhere((a) => a.id == id);
     await saveAll(list);
     return list;
   }

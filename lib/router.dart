@@ -16,7 +16,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: initialLocation,
-    debugLogDiagnostics: true,
+    overridePlatformDefaultLocation: true,
     routes: [
       GoRoute(
         path: '/',
@@ -50,11 +50,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           final repo = state.pathParameters['repo']!;
           final number =
               int.tryParse(state.pathParameters['number'] ?? '') ?? 0;
-          return PrDetailScreen(
-            owner: owner,
-            repo: repo,
-            number: number,
-          );
+          return PrDetailScreen(owner: owner, repo: repo, number: number);
         },
       ),
       GoRoute(
@@ -65,18 +61,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           final repo = state.pathParameters['repo']!;
           final number =
               int.tryParse(state.pathParameters['number'] ?? '') ?? 0;
-          return PrDetailScreen(
-            owner: owner,
-            repo: repo,
-            number: number,
-          );
+          return PrDetailScreen(owner: owner, repo: repo, number: number);
         },
       ),
     ],
-    errorBuilder: (context, state) => Scaffold(
-      body: Center(
-        child: Text('Page not found: ${state.uri}'),
-      ),
-    ),
+    errorBuilder: (context, state) =>
+        Scaffold(body: Center(child: Text('Page not found: ${state.uri}'))),
   );
 });

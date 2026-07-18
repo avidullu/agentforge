@@ -8,7 +8,7 @@ import 'app_settings.dart';
 /// store for simplicity (single dependency, small payload).
 class SettingsRepository {
   SettingsRepository({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage();
+    : _storage = storage ?? const FlutterSecureStorage();
 
   static const _kBaseUrl = 'forgejo_base_url';
   static const _kToken = 'forgejo_token';

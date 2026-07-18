@@ -6,9 +6,9 @@
 
 1. **Deep-link from Gmail** → open the exact PR in the app.
 2. **Identify the originating local agent/machine** clearly and reliably.
-3. **Rich agent context** — not just the Git diff, but the agent’s plan, reasoning, recent actions, and ability to inject feedback.
+3. **Rich agent context** — not just the Git diff, but the agent’s plan, authored rationale summary, recent actions, and ability to inject feedback.
 4. **Lightweight formal review actions** (comment, approve, request changes) via Forgejo API.
-5. Fully private (everything stays inside the Tailscale tailnet).
+5. Private runtime data (Forgejo, credentials, PR context, and agent control stay inside the Tailscale tailnet; the source repository itself is public).
 6. **Multi-machine coordination** — easily see and relate work on the same repo across different agents/machines.
 
 ## High-Level Architecture
@@ -30,6 +30,6 @@ Mobile App (Flutter)
 
 - Cross-platform: Flutter (single codebase).
 - Networking: Tailscale only (no public exposure).
-- Protocol for agents: Model Context Protocol (MCP) over Streamable HTTP.
+- Protocol target for agents: authenticated MCP over Streamable HTTP. The current REST/JSON prototype is not yet compliant MCP.
 - Configuration: Explicit agent registry + optional discovery.
 - UI philosophy: Dense but readable, dark-mode first, agent identity always visible.

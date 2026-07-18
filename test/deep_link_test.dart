@@ -45,6 +45,26 @@ void main() {
       expect(deepLinkToLocation(uri), isNull);
     });
 
+    test('rejects a PR path from another authority', () {
+      final uri = Uri.parse('https://evil.example/o/r/pulls/1');
+      expect(deepLinkToLocation(uri), isNull);
+    });
+
+    test('rejects HTTP and alternate-port Forgejo URLs', () {
+      expect(
+        deepLinkToLocation(
+          Uri.parse('http://avis-pbook.tail651ec3.ts.net/o/r/pulls/1'),
+        ),
+        isNull,
+      );
+      expect(
+        deepLinkToLocation(
+          Uri.parse('https://avis-pbook.tail651ec3.ts.net:8443/o/r/pulls/1'),
+        ),
+        isNull,
+      );
+    });
+
     test('rejects null', () {
       expect(deepLinkToLocation(null), isNull);
     });

@@ -1,6 +1,6 @@
 /// Pure helpers that map OS-level deep-link URIs into go_router locations.
 ///
-/// Supported shapes (host ignored for path routing — only path matters):
+/// Supported shapes:
 /// - `https://avis-pbook.tail651ec3.ts.net/{owner}/{repo}/pulls/{n}`
 /// - `https://…/{owner}/{repo}/pull/{n}`
 /// - `agentforge://pr/{owner}/{repo}/{n}`  (custom scheme, easy adb/testing)
@@ -27,9 +27,10 @@ String? deepLinkToLocation(Uri? uri) {
 
   final scheme = uri.scheme.toLowerCase();
 
-  if (scheme == 'http' || scheme == 'https') {
-    // Accept any host so Gmail redirectors / alternate names still work
-    // as long as the path is a PR path.
+  if (scheme == 'https') {
+    // Never resolve a URL from another Forgejo authority against the token and
+    // base URL of the configured private instance.
+    if (uri.host.toLowerCase() != kForgejoHost || uri.port != 443) return null;
     final path = _normalizePath(uri.path);
     if (isPrPath(path)) return path;
     return null;

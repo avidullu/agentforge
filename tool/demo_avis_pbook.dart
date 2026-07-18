@@ -5,14 +5,18 @@ import 'package:agentforge/core/settings/app_settings.dart';
 
 /// Live demo against avis-pbook using the same ForgejoClient as the app.
 Future<void> main(List<String> args) async {
-  final token = Platform.environment['FORGEJO_TOKEN'] ??
+  final token =
+      Platform.environment['FORGEJO_TOKEN'] ??
       (args.isNotEmpty ? args.first : '');
   if (token.isEmpty) {
-    stderr.writeln('Usage: FORGEJO_TOKEN=... dart run tool/demo_avis_pbook.dart');
+    stderr.writeln(
+      'Usage: FORGEJO_TOKEN=... dart run tool/demo_avis_pbook.dart',
+    );
     exit(2);
   }
 
-  final base = Platform.environment['FORGEJO_URL'] ??
+  final base =
+      Platform.environment['FORGEJO_URL'] ??
       'https://avis-pbook.tail651ec3.ts.net';
 
   stdout.writeln('=== AgentForge live demo ===');
@@ -35,9 +39,7 @@ Future<void> main(List<String> args) async {
   } else {
     for (final p in prs) {
       final draft = p.draft ? ' [draft]' : '';
-      stdout.writeln(
-        '   • ${p.fullName}#${p.number}$draft  ${p.title}',
-      );
+      stdout.writeln('   • ${p.fullName}#${p.number}$draft  ${p.title}');
       stdout.writeln('     ${p.htmlUrl}');
     }
   }
@@ -49,9 +51,7 @@ Future<void> main(List<String> args) async {
   }
 
   final target = prs.first;
-  stdout.writeln(
-    '3) get PR detail ${target.fullName}#${target.number}…',
-  );
+  stdout.writeln('3) get PR detail ${target.fullName}#${target.number}…');
   final detail = await client.getPullRequest(
     owner: target.owner,
     repo: target.repo,
@@ -75,8 +75,9 @@ Future<void> main(List<String> args) async {
   for (final c in comments.take(3)) {
     final who = c.user.login.isEmpty ? '?' : c.user.login;
     final snippet = c.body.trim().replaceAll('\n', ' ');
-    final short =
-        snippet.length > 80 ? '${snippet.substring(0, 80)}…' : snippet;
+    final short = snippet.length > 80
+        ? '${snippet.substring(0, 80)}…'
+        : snippet;
     stdout.writeln('   - $who: $short');
   }
   stdout.writeln('');
@@ -101,5 +102,7 @@ Future<void> main(List<String> args) async {
   );
   stdout.writeln('   https:  ${target.htmlUrl}');
   stdout.writeln('');
-  stdout.writeln('=== demo complete (read-only; no comments/reviews posted) ===');
+  stdout.writeln(
+    '=== demo complete (read-only; no comments/reviews posted) ===',
+  );
 }

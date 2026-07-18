@@ -26,6 +26,8 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+/coverage/
+/inst_user_settings.tmp
 
 # Symbolication related
 app.*.symbols

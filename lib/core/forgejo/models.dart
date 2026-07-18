@@ -90,23 +90,32 @@ class PullRequestDetail {
   const PullRequestDetail({
     required this.summary,
     required this.body,
+    required this.headSha,
+    this.headRef = '',
+    this.baseRef = '',
   });
 
   final PullRequestSummary summary;
   final String body;
+  final String headSha;
+  final String headRef;
+  final String baseRef;
 
   factory PullRequestDetail.fromPullJson(
     Map<String, dynamic> json, {
     required String owner,
     required String repo,
   }) {
+    final head =
+        json['head'] as Map<String, dynamic>? ?? const <String, dynamic>{};
+    final base =
+        json['base'] as Map<String, dynamic>? ?? const <String, dynamic>{};
     return PullRequestDetail(
-      summary: PullRequestSummary.fromPullJson(
-        json,
-        owner: owner,
-        repo: repo,
-      ),
+      summary: PullRequestSummary.fromPullJson(json, owner: owner, repo: repo),
       body: (json['body'] ?? '') as String,
+      headSha: (head['sha'] ?? '') as String,
+      headRef: (head['ref'] ?? '') as String,
+      baseRef: (base['ref'] ?? '') as String,
     );
   }
 }

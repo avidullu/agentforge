@@ -13,8 +13,9 @@ import '../../core/settings/settings_providers.dart';
 /// Home list filter.
 enum PrListFilter { all, withAgents }
 
-final prListFilterProvider =
-    StateProvider<PrListFilter>((ref) => PrListFilter.all);
+final prListFilterProvider = StateProvider<PrListFilter>(
+  (ref) => PrListFilter.all,
+);
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -87,6 +88,7 @@ class _PullRequestList extends ConsumerWidget {
     final prs = ref.watch(openPullRequestsProvider);
     final filter = ref.watch(prListFilterProvider);
     final agentsByPr = ref.watch(agentsByPrProvider);
+    final workAsync = ref.watch(agentWorkMapProvider);
 
     return prs.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -99,15 +101,21 @@ class _PullRequestList extends ConsumerWidget {
         onSecondary: () => context.push('/settings'),
       ),
       data: (list) {
+        final activityIncomplete =
+            workAsync.isLoading ||
+            workAsync.hasError ||
+            (workAsync.valueOrNull?.values.any(
+                  (result) => result.isUnavailable,
+                ) ??
+                false);
         final filtered = filter == PrListFilter.all
             ? list
             : list
-                .where(
-                  (p) =>
-                      (agentsByPr['${p.fullName}#${p.number}'] ?? const [])
-                          .isNotEmpty,
-                )
-                .toList();
+                  .where(
+                    (p) => (agentsByPr['${p.fullName}#${p.number}'] ?? const [])
+                        .isNotEmpty,
+                  )
+                  .toList();
 
         return Column(
           children: [
@@ -118,17 +126,17 @@ class _PullRequestList extends ConsumerWidget {
                   FilterChip(
                     label: const Text('All open'),
                     selected: filter == PrListFilter.all,
-                    onSelected: (_) => ref
-                        .read(prListFilterProvider.notifier)
-                        .state = PrListFilter.all,
+                    onSelected: (_) =>
+                        ref.read(prListFilterProvider.notifier).state =
+                            PrListFilter.all,
                   ),
                   const SizedBox(width: 8),
                   FilterChip(
                     label: const Text('With agents'),
                     selected: filter == PrListFilter.withAgents,
-                    onSelected: (_) => ref
-                        .read(prListFilterProvider.notifier)
-                        .state = PrListFilter.withAgents,
+                    onSelected: (_) =>
+                        ref.read(prListFilterProvider.notifier).state =
+                            PrListFilter.withAgents,
                   ),
                   const Spacer(),
                   Text(
@@ -138,13 +146,37 @@ class _PullRequestList extends ConsumerWidget {
                 ],
               ),
             ),
+            if (activityIncomplete)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Agent activity is loading or partial; “With agents” may '
+                    'omit PRs until endpoint health recovers.',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+              ),
             Expanded(
               child: filtered.isEmpty
                   ? _MessageBody(
-                      title: filter == PrListFilter.withAgents
+                      title:
+                          filter == PrListFilter.withAgents &&
+                              activityIncomplete
+                          ? 'Agent activity incomplete'
+                          : filter == PrListFilter.withAgents
                           ? 'No agent-linked PRs'
                           : 'No open pull requests',
-                      body: filter == PrListFilter.withAgents
+                      body:
+                          filter == PrListFilter.withAgents &&
+                              activityIncomplete
+                          ? 'One or more endpoint activity results are loading '
+                                'or unavailable. Retry before treating this as '
+                                'an empty result.'
+                          : filter == PrListFilter.withAgents
                           ? 'Register agents and expose /active-work, or switch to All open.'
                           : 'Nothing open on repos visible to this token.',
                     )
@@ -181,18 +213,14 @@ class _PrTile extends ConsumerWidget {
     final updated = pr.updatedAt;
     final agents =
         ref.watch(agentsByPrProvider)['${pr.fullName}#${pr.number}'] ??
-            const <AgentEntry>[];
+        const <AgentEntry>[];
 
     return ListTile(
       leading: Icon(
         pr.draft ? Icons.drafts_outlined : Icons.merge_type,
         color: theme.colorScheme.primary,
       ),
-      title: Text(
-        pr.title,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
+      title: Text(pr.title, maxLines: 2, overflow: TextOverflow.ellipsis),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -258,10 +286,7 @@ class _MessageBody extends StatelessWidget {
         children: [
           Text(title, style: theme.textTheme.headlineSmall),
           const SizedBox(height: 12),
-          Text(
-            body,
-            style: theme.textTheme.bodyLarge?.copyWith(height: 1.45),
-          ),
+          Text(body, style: theme.textTheme.bodyLarge?.copyWith(height: 1.45)),
           if (actionLabel != null && onAction != null) ...[
             const SizedBox(height: 24),
             FilledButton(onPressed: onAction, child: Text(actionLabel!)),

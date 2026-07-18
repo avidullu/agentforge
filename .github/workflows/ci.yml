@@ -6,17 +6,20 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   analyze-and-test:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
-          channel: stable
+          flutter-version: '3.44.6'
           cache: true
 
       - name: Install dependencies
@@ -25,5 +28,17 @@ jobs:
       - name: Analyze
         run: flutter analyze --fatal-infos
 
-      - name: Test
-        run: flutter test
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed lib test tool
+
+      - name: Test with coverage
+        run: flutter test --coverage
+
+      - name: Enforce coverage floor
+        run: dart run tool/check_coverage.dart coverage/lcov.info 29
+
+      - name: Build Android debug APK
+        run: flutter build apk --debug
+
+      - name: Build web release
+        run: flutter build web --release --no-wasm-dry-run

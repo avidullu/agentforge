@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
+import '../../core/agents/agent_providers.dart';
 import '../../core/forgejo/forgejo_client.dart';
 import '../../core/forgejo/forgejo_providers.dart';
 import '../../core/forgejo/models.dart';
@@ -42,15 +43,15 @@ class _PrDetailScreenState extends ConsumerState<PrDetailScreen> {
       await action();
       if (!mounted) return;
       if (success != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(success)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(success)));
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(forgejoErrorMessage(e))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(forgejoErrorMessage(e))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -65,16 +66,35 @@ class _PrDetailScreenState extends ConsumerState<PrDetailScreen> {
     }, success: 'Comment posted');
   }
 
-  Future<void> _review(ReviewEvent event, String label) async {
+  Future<void> _review(ReviewEvent event, String label, String headSha) async {
     final body = _commentController.text.trim();
+    if (event == ReviewEvent.requestChanges && body.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Add a review comment before requesting changes.'),
+        ),
+      );
+      return;
+    }
+    if (headSha.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Refresh the PR before submitting a formal review.'),
+        ),
+      );
+      return;
+    }
+    final shortSha = headSha.substring(0, headSha.length.clamp(0, 8));
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(label),
         content: Text(
-          body.isEmpty
-              ? 'Submit without an additional comment?'
-              : 'Submit with the comment box as the review body?',
+          'Target: ${widget.owner}/${widget.repo} #${widget.number} at '
+          '$shortSha.\n\n'
+          'AgentForge does not show diffs or checks yet. Verify them in '
+          'Forgejo before submitting.\n\n'
+          '${body.isEmpty ? 'Submit without an additional comment?' : 'Submit with the comment box as the review body?'}',
         ),
         actions: [
           TextButton(
@@ -90,9 +110,12 @@ class _PrDetailScreenState extends ConsumerState<PrDetailScreen> {
     );
     if (confirmed != true) return;
     await _run(() async {
-      await ref.read(prActionsProvider).submitReview(
+      await ref
+          .read(prActionsProvider)
+          .submitReview(
             _key,
             event: event,
+            expectedHeadSha: headSha,
             body: body,
           );
       _commentController.clear();
@@ -118,6 +141,7 @@ class _PrDetailScreenState extends ConsumerState<PrDetailScreen> {
                     ref.invalidate(pullRequestDetailProvider(_key));
                     ref.invalidate(issueCommentsProvider(_key));
                     ref.invalidate(pullReviewsProvider(_key));
+                    ref.invalidate(agentWorkMapProvider);
                     ref.invalidate(agentContextProvider(_key));
                   },
             icon: const Icon(Icons.refresh),
@@ -129,8 +153,7 @@ class _PrDetailScreenState extends ConsumerState<PrDetailScreen> {
         error: (e, _) => _ErrorPane(
           message: forgejoErrorMessage(e),
           onRetry: () => ref.invalidate(pullRequestDetailProvider(_key)),
-          fallback:
-              '${widget.owner}/${widget.repo} #${widget.number}',
+          fallback: '${widget.owner}/${widget.repo} #${widget.number}',
         ),
         data: (detail) {
           if (detail == null) {
@@ -141,9 +164,7 @@ class _PrDetailScreenState extends ConsumerState<PrDetailScreen> {
                 children: [
                   Text('Deep link target', style: theme.textTheme.titleLarge),
                   const SizedBox(height: 8),
-                  Text(
-                    '${widget.owner}/${widget.repo} #${widget.number}',
-                  ),
+                  Text('${widget.owner}/${widget.repo} #${widget.number}'),
                   const SizedBox(height: 16),
                   Text(
                     'Connect Forgejo in Settings to load conversation and reviews.',
@@ -185,10 +206,13 @@ class _PrDetailScreenState extends ConsumerState<PrDetailScreen> {
                         s.state,
                         if (s.user.login.isNotEmpty) 'by ${s.user.login}',
                         if (updated != null) timeago.format(updated),
+                        if (detail.headSha.isNotEmpty)
+                          'head ${detail.headSha.substring(0, detail.headSha.length.clamp(0, 8))}',
                       ].join(' · '),
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.7),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -218,8 +242,9 @@ class _PrDetailScreenState extends ConsumerState<PrDetailScreen> {
                           return Text(
                             'No formal reviews yet.',
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface
-                                  .withValues(alpha: 0.6),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.6,
+                              ),
                             ),
                           );
                         }
@@ -244,8 +269,9 @@ class _PrDetailScreenState extends ConsumerState<PrDetailScreen> {
                           return Text(
                             'No comments yet.',
                             style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface
-                                  .withValues(alpha: 0.6),
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.6,
+                              ),
                             ),
                           );
                         }
@@ -263,9 +289,13 @@ class _PrDetailScreenState extends ConsumerState<PrDetailScreen> {
                 controller: _commentController,
                 busy: _busy,
                 onPostComment: _postComment,
-                onApprove: () => _review(ReviewEvent.approve, 'Approve'),
-                onRequestChanges: () =>
-                    _review(ReviewEvent.requestChanges, 'Request changes'),
+                onApprove: () =>
+                    _review(ReviewEvent.approve, 'Approve', detail.headSha),
+                onRequestChanges: () => _review(
+                  ReviewEvent.requestChanges,
+                  'Request changes',
+                  detail.headSha,
+                ),
               ),
             ],
           );
@@ -309,33 +339,29 @@ class _ReviewComposer extends StatelessWidget {
                 maxLines: 4,
                 enabled: !busy,
                 decoration: const InputDecoration(
+                  labelText: 'Review comment',
                   hintText: 'Comment or review body…',
                   border: OutlineInputBorder(),
                   isDense: true,
                 ),
               ),
               const SizedBox(height: 10),
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.end,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: busy ? null : onPostComment,
-                      child: const Text('Comment'),
-                    ),
+                  OutlinedButton(
+                    onPressed: busy ? null : onPostComment,
+                    child: const Text('Comment'),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: FilledButton.tonal(
-                      onPressed: busy ? null : onRequestChanges,
-                      child: const Text('Request changes'),
-                    ),
+                  FilledButton.tonal(
+                    onPressed: busy ? null : onRequestChanges,
+                    child: const Text('Request changes'),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: busy ? null : onApprove,
-                      child: const Text('Approve'),
-                    ),
+                  FilledButton(
+                    onPressed: busy ? null : onApprove,
+                    child: const Text('Approve'),
                   ),
                 ],
               ),
@@ -447,8 +473,10 @@ class _ErrorPane extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Could not load PR',
-              style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Could not load PR',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 8),
           Text(message),
           const SizedBox(height: 16),

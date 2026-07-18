@@ -12,8 +12,9 @@ final settingsProvider = FutureProvider<AppSettings>((ref) async {
   return ref.watch(settingsRepositoryProvider).load();
 });
 
-final settingsControllerProvider =
-    Provider<SettingsController>((ref) => SettingsController(ref));
+final settingsControllerProvider = Provider<SettingsController>(
+  (ref) => SettingsController(ref),
+);
 
 class SettingsController {
   SettingsController(this._ref);
@@ -22,6 +23,11 @@ class SettingsController {
 
   Future<void> save(AppSettings settings) async {
     await _ref.read(settingsRepositoryProvider).save(settings);
+    _ref.invalidate(settingsProvider);
+  }
+
+  Future<void> disconnect() async {
+    await _ref.read(settingsRepositoryProvider).clearToken();
     _ref.invalidate(settingsProvider);
   }
 }
