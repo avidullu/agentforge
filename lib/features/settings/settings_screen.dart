@@ -28,11 +28,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     super.initState();
     _urlController = TextEditingController(text: AppSettings.defaultBaseUrl);
     _tokenController = TextEditingController();
-    // Prefill from storage once loaded.
+    // Prefill from storage once loaded (origin-bound PAT; never cross-host).
     ref.read(settingsProvider.future).then((s) {
       if (!mounted) return;
       _urlController.text = s.baseUrl;
       _tokenController.text = s.token;
+      if (s.needsCredentialReentry) {
+        setState(() {
+          _statusMessage =
+              s.credentialState ==
+                  CredentialLoadState.legacyClearedRequiresReentry
+              ? 'Saved credential was for a previous app version and was '
+                    'cleared. Enter a personal access token for this Forgejo '
+                    'instance.'
+              : 'Credential was entered for a different Forgejo instance. '
+                    'Enter a token for the current origin.';
+          _statusIsError = false;
+        });
+      }
     });
   }
 
@@ -150,6 +163,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
+            if (_statusMessage != null &&
+                (_statusMessage!.contains('different Forgejo') ||
+                    _statusMessage!.contains('previous app version'))) ...[
+              const SizedBox(height: 16),
+              Material(
+                color: theme.colorScheme.secondaryContainer,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    _statusMessage!,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             TextFormField(
               controller: _urlController,
