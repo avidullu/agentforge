@@ -143,8 +143,14 @@ bool _isAllowedHttpsLiteral(String url) {
   if (host == '127.0.0.1' || host == 'localhost' || host == '::1') {
     return scheme == 'http' || scheme == 'https';
   }
-  // JSON Schema meta URLs are public infrastructure, not Forgejo hosts.
-  if (host == 'json-schema.org' && scheme == 'https') {
+  // Only the approved JSON Schema meta $schema literal (draft 2020-12).
+  if (scheme == 'https' &&
+      host == 'json-schema.org' &&
+      !uri.hasPort &&
+      uri.userInfo.isEmpty &&
+      uri.query.isEmpty &&
+      uri.fragment.isEmpty &&
+      uri.path == '/draft/2020-12/schema') {
     return true;
   }
 

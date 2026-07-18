@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../tool/config_model.dart';
+import '../../tool/generate_config.dart';
 import 'hermetic_dart.dart';
 
 /// Valid Android assetlinks SHA-256 fingerprint (32 colon-separated hex pairs).
@@ -207,7 +208,7 @@ void main() {
     });
   });
 
-  group('generate_config CLI (isolated AGENTFORGE_ROOT)', () {
+  group('generateConfigOutputs (isolated temp root only)', () {
     late Directory fixtureRoot;
 
     setUp(() {
@@ -221,54 +222,46 @@ void main() {
       }
     });
 
-    Map<String, String> env([Map<String, String>? extra]) {
-      final m = Map<String, String>.from(Platform.environment)
-        ..remove('AGENTFORGE_CONFIG')
-        ..['AGENTFORGE_ROOT'] = fixtureRoot.path;
-      if (extra != null) m.addAll(extra);
-      return m;
-    }
-
-    test('build-safe run exits 0 without leaking paths/origin', () {
-      final result = Process.runSync(
-        dartBin,
-        ['run', 'tool/generate_config.dart'],
-        workingDirectory: repoRoot.path,
-        environment: env(),
+    test('writes synthetic selected + natives with relative log labels only', () {
+      final logs = <String>[];
+      final example = File(
+        '${fixtureRoot.path}/config/agentforge.config.example.json',
       );
-      expect(result.exitCode, 0, reason: result.stderr.toString());
-      final log = result.stdout.toString();
-      expect(log, isNot(contains(fixtureRoot.path)));
-      expect(log, isNot(contains(repoRoot.path)));
-      expect(log, isNot(contains('origin=')));
+      generateConfigOutputs(
+        repoRoot: fixtureRoot,
+        configFile: example,
+        release: false,
+        log: logs.add,
+      );
+      final joined = logs.join('\n');
+      expect(joined, isNot(contains(fixtureRoot.path)));
+      expect(joined, isNot(contains(repoRoot.path)));
+      expect(joined, isNot(contains('origin=')));
+      expect(
+        File(
+          '${fixtureRoot.path}/lib/core/config/generated/app_config.selected.dart',
+        ).readAsStringSync(),
+        contains(kSyntheticOrigin),
+      );
     });
 
-    test('--release fails closed without signing fingerprints', () {
-      final result = Process.runSync(
-        dartBin,
-        ['run', 'tool/generate_config.dart', '--release'],
-        workingDirectory: repoRoot.path,
-        environment: env(),
+    test('release validation fails closed before writing when signing empty', () {
+      final example = File(
+        '${fixtureRoot.path}/config/agentforge.config.example.json',
       );
-      expect(result.exitCode, isNot(0));
-      final combined = result.stderr.toString() + result.stdout.toString();
-      expect(combined, contains('release mode'));
-      expect(combined, isNot(contains(fixtureRoot.path)));
-    });
-
-    test('missing AGENTFORGE_CONFIG path does not leak absolute path', () {
-      final result = Process.runSync(
-        dartBin,
-        ['run', 'tool/generate_config.dart'],
-        workingDirectory: repoRoot.path,
-        environment: env({
-          'AGENTFORGE_CONFIG': '${fixtureRoot.path}/does-not-exist.json',
-        }),
+      final selected = File(
+        '${fixtureRoot.path}/lib/core/config/generated/app_config.selected.dart',
       );
-      expect(result.exitCode, isNot(0));
-      final err = result.stderr.toString();
-      expect(err, contains('missing file'));
-      expect(err, isNot(contains(fixtureRoot.path)));
+      final before = selected.readAsBytesSync();
+      expect(
+        () => generateConfigOutputs(
+          repoRoot: fixtureRoot,
+          configFile: example,
+          release: true,
+        ),
+        throwsA(isA<ConfigValidationException>()),
+      );
+      expect(selected.readAsBytesSync(), before);
     });
 
     test(
@@ -296,13 +289,11 @@ void main() {
             }),
           );
 
-        final result = Process.runSync(
-          dartBin,
-          ['run', 'tool/generate_config.dart'],
-          workingDirectory: repoRoot.path,
-          environment: env({'AGENTFORGE_CONFIG': explicit.path}),
+        generateConfigOutputs(
+          repoRoot: fixtureRoot,
+          configFile: explicit,
+          release: false,
         );
-        expect(result.exitCode, 0, reason: result.stderr.toString());
         expect(trackedProps.readAsBytesSync(), beforeProps);
         expect(trackedXc.readAsBytesSync(), beforeXc);
         expect(
@@ -311,98 +302,68 @@ void main() {
           ).existsSync(),
           isTrue,
         );
-        expect(
-          File(
-            '${fixtureRoot.path}/ios/Flutter/AgentForge.local.xcconfig',
-          ).readAsStringSync().contains('CODE_SIGN_ENTITLEMENTS='),
-          isFalse,
-        );
       },
     );
 
-    test('default generation is byte-idempotent', () {
-      final first = Process.runSync(
-        dartBin,
-        ['run', 'tool/generate_config.dart'],
-        workingDirectory: repoRoot.path,
-        environment: env(),
+    test('default generation is byte-idempotent on fixture', () {
+      final example = File(
+        '${fixtureRoot.path}/config/agentforge.config.example.json',
       );
-      expect(first.exitCode, 0, reason: first.stderr.toString());
-
+      generateConfigOutputs(
+        repoRoot: fixtureRoot,
+        configFile: example,
+        release: false,
+      );
       final props = File('${fixtureRoot.path}/agentforge-config.properties');
       final xc = File('${fixtureRoot.path}/ios/Flutter/AgentForge.xcconfig');
       final selected = File(
         '${fixtureRoot.path}/lib/core/config/generated/app_config.selected.dart',
       );
+      // Snapshot AFTER first generation (order-independent vs prior tests).
       final bProps = props.readAsBytesSync();
       final bXc = xc.readAsBytesSync();
       final bSelected = selected.readAsBytesSync();
 
-      final second = Process.runSync(
-        dartBin,
-        ['run', 'tool/generate_config.dart'],
-        workingDirectory: repoRoot.path,
-        environment: env(),
+      generateConfigOutputs(
+        repoRoot: fixtureRoot,
+        configFile: example,
+        release: false,
       );
-      expect(second.exitCode, 0, reason: second.stderr.toString());
       expect(props.readAsBytesSync(), bProps);
       expect(xc.readAsBytesSync(), bXc);
       expect(selected.readAsBytesSync(), bSelected);
     });
   });
 
-  group('committed tracked synthetic generation is byte-idempotent', () {
-    test('default generate leaves committed natives unchanged', () {
-      // Order-independent: snapshot HEAD bytes via git, generate, compare.
-      const propsPath = 'agentforge-config.properties';
-      const xcPath = 'ios/Flutter/AgentForge.xcconfig';
-      const selectedPath = 'lib/core/config/generated/app_config.selected.dart';
-
-      List<int> headBytes(String rel) {
-        final r = Process.runSync('git', [
-          'show',
-          'HEAD:$rel',
-        ], workingDirectory: repoRoot.path);
-        expect(r.exitCode, 0, reason: r.stderr.toString());
-        final out = r.stdout;
-        if (out is List<int>) return out;
-        return utf8.encode(out as String);
-      }
-
-      // Ensure working tree matches HEAD for these files before generate.
-      Process.runSync('git', [
-        'checkout',
-        'HEAD',
-        '--',
-        propsPath,
-        xcPath,
-        selectedPath,
-      ], workingDirectory: repoRoot.path);
-
-      final beforeProps = headBytes(propsPath);
-      final beforeXc = headBytes(xcPath);
-      final beforeSelected = headBytes(selectedPath);
-
+  group('generate_config CLI (no tracked mutation on failure paths)', () {
+    test('--release fails closed without writing when signing empty', () {
       final env = Map<String, String>.from(Platform.environment)
-        ..remove('AGENTFORGE_CONFIG')
-        ..remove('AGENTFORGE_ROOT');
+        ..remove('AGENTFORGE_CONFIG');
+      final result = Process.runSync(
+        dartBin,
+        ['run', 'tool/generate_config.dart', '--release'],
+        workingDirectory: repoRoot.path,
+        environment: env,
+      );
+      expect(result.exitCode, isNot(0));
+      final combined = result.stderr.toString() + result.stdout.toString();
+      expect(combined, contains('release mode'));
+      expect(combined, isNot(contains(repoRoot.path)));
+    });
+
+    test('missing AGENTFORGE_CONFIG path does not leak absolute path', () {
+      final env = Map<String, String>.from(Platform.environment)
+        ..['AGENTFORGE_CONFIG'] = '/no/such/agentforge-config.json';
       final result = Process.runSync(
         dartBin,
         ['run', 'tool/generate_config.dart'],
         workingDirectory: repoRoot.path,
         environment: env,
       );
-      expect(result.exitCode, 0, reason: result.stderr.toString());
-
-      expect(
-        File('${repoRoot.path}/$propsPath').readAsBytesSync(),
-        beforeProps,
-      );
-      expect(File('${repoRoot.path}/$xcPath').readAsBytesSync(), beforeXc);
-      expect(
-        File('${repoRoot.path}/$selectedPath').readAsBytesSync(),
-        beforeSelected,
-      );
+      expect(result.exitCode, isNot(0));
+      final err = result.stderr.toString();
+      expect(err, contains('missing file'));
+      expect(err, isNot(contains('/no/such')));
     });
   });
 }

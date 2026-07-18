@@ -134,6 +134,25 @@ void main() {
       ], workingDirectory: repoRoot.path);
       expect(result.exitCode, 0, reason: result.stderr.toString());
     });
+
+    test('unexpected failures print stable category without stacks/paths', () {
+      final result = Process.runSync(dartBin, [
+        'run',
+        'tool/check_no_pii.dart',
+        '--mode=blocklist',
+        '--scope=fixture',
+        '--root=${fixtures.path}',
+        '--blocklist=/definitely/missing/blocklist-file.txt',
+      ], workingDirectory: repoRoot.path);
+      expect(result.exitCode, isNot(0));
+      final err = result.stderr.toString();
+      expect(
+        err.contains('check_no_pii failed') || err.contains('missing'),
+        isTrue,
+      );
+      expect(err, isNot(contains('#0 '))); // no stack frames
+      expect(err, isNot(contains(repoRoot.path)));
+    });
   });
 
   group('hermeticDartExecutable', () {

@@ -94,9 +94,12 @@ void main(List<String> args) {
     } else {
       exitCode = 1;
     }
-  } catch (e, st) {
-    stderr.writeln(e);
-    stderr.writeln(st);
+  } on FormatException catch (e) {
+    stderr.writeln(e.message);
+    exitCode = 64;
+  } catch (_) {
+    // Never dump absolute paths or stacks (review 265).
+    stderr.writeln('check_no_pii failed');
     exitCode = 1;
   }
 }

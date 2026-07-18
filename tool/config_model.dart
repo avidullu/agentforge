@@ -62,17 +62,9 @@ class ConfigValidationException implements Exception {
 
 /// Locate the repository root (directory containing `pubspec.yaml`).
 ///
-/// Tests may set `AGENTFORGE_ROOT` to an isolated fixture directory so CLI
-/// tools never mutate a developer checkout.
+/// Walks ancestors from [start] (default: cwd). No environment override —
+/// tests inject an isolated root via [generateConfigOutputs] APIs instead.
 Directory findRepoRoot([Directory? start]) {
-  final override = Platform.environment['AGENTFORGE_ROOT'];
-  if (override != null && override.trim().isNotEmpty) {
-    final dir = Directory(override.trim());
-    if (!dir.existsSync()) {
-      throw StateError('AGENTFORGE_ROOT does not exist');
-    }
-    return dir;
-  }
   var dir = start ?? Directory.current;
   while (true) {
     if (File('${dir.path}/pubspec.yaml').existsSync()) return dir;
