@@ -49,6 +49,14 @@ void main() {
     }
   });
 
+  test('CI shell scripts stay LF-normalized on Windows checkouts', () {
+    final attributes = File(
+      '${repoRoot.path}/.gitattributes',
+    ).readAsStringSync();
+
+    expect(attributes, contains('*.sh text eol=lf'));
+  });
+
   test('shared-runner Gradle bounds cannot silently return to 8 GiB', () {
     final properties = File(
       '${repoRoot.path}/android/gradle.properties',
