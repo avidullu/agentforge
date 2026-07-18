@@ -140,6 +140,15 @@ and the following statements are factually true:
 
 ## Changelog
 
+- **2026-07-18 — AF-009 BUG FILED (not yet implemented):** Opened
+  [`docs/11-PII-Redaction.md`](11-PII-Redaction.md) documenting hard-coded
+  owner/machine identifiers (`avis-pbook.tail651ec3.ts.net`,
+  `com.avidullu.agentforge`, `avidullu`, `C:\Users\avidu\...`, `Avi Dullu`)
+  across source, native config, tests, and docs. Proposes a four-layer
+  extensible mechanism (Dart `AppConfig`, native parameterization, doc
+  templates, `tool/check_no_pii.dart` guard) with a seven-step implementation
+  strategy. Awaiting LGTM before implementation; ledger row `AF-009` will be
+  added when S1 starts.
 - **2026-07-18 — AF-001 / AF-007 SHIPPED:** Replaced aspirational M0-M5
   completion claims with
   verified statuses and gates. Added the design audit, deep-link/app-links
