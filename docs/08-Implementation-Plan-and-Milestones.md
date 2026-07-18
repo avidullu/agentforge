@@ -152,8 +152,8 @@ and the following statements are factually true:
   screen-to-code map, state matrix, pickup protocol and Definition of Done.
   The candidate passed link/JSON/hash/quarantine/denylist checks, formatting,
   clean Flutter analysis, all 46 tests at 35.92% line coverage (29% floor), and
-  debug APK plus release Web builds. Ready-for-review Forgejo PR link pending
-  publication.
+  debug APK plus release Web builds. Published as ready-for-review
+  [Forgejo #4](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/4).
 - **2026-07-18 — AF-001 / AF-007 SHIPPED:** Replaced aspirational M0-M5
   completion claims with
   verified statuses and gates. Added the design audit, deep-link/app-links

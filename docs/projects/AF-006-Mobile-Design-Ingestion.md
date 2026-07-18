@@ -64,7 +64,7 @@ update its own row, the affected gap rows, and this document's changelog.
 
 | ID | Deliverable | Status | Dependency / acceptance gate | PR |
 |---|---|---|---|---|
-| AF-006-A1 | Safe intake index, source hashes, final-pass audit, gap register, code map, pickup plan | **READY FOR REVIEW** | Docs/assets only; no raw private binaries or prototype contracts enter Git | Pending publication |
+| AF-006-A1 | Safe intake index, source hashes, final-pass audit, gap register, code map, pickup plan | **IN REVIEW** | Docs/assets only; no raw private binaries or prototype contracts enter Git | [Forgejo #4](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/4) |
 | AF-006-A2 | Canonical sanitized visual package: portrait exports, real Add Agent/pairing states, provenance/notices, MIME-correct assets, checksum manifest | **BLOCKED** | AF-008 license/provenance decision; private-data redaction; regenerated distinct captures | — |
 | AF-006-B | Semantic Flutter tokens and reusable accessible primitives | **BLOCKED** | G023 theme decision plus G008/G015/G016 acceptance values; no failing source color imported verbatim | — |
 | AF-006-C | Four-tab app shell plus Home state-complete visual implementation | **BLOCKED** | AF-006-B; router/deep-link regression tests; agent carousel waits for AF-005 | — |
@@ -209,7 +209,7 @@ AF-006 can move to **DONE** only when:
 
 ## Changelog
 
-- **2026-07-18 — AF-006-A1 READY FOR REVIEW:** Selected the owner's exact Final
+- **2026-07-18 — AF-006-A1 IN REVIEW:** Selected the owner's exact Final
   handoff; inventoried all 24 files; audited all 14 images and prototype/code
   artifacts; tracked the disclosure-safe visual tokens plus exact source
   hashes; quarantined private, broken and provenance-unclear binaries; mapped
@@ -220,4 +220,5 @@ AF-006 can move to **DONE** only when:
   relative links, JSON parsing, all 24 source hashes, binary quarantine,
   denylist scan and `git diff --check` passed; formatting changed 0/39 files;
   Flutter analysis was clean; all 46 tests passed at 573/1595 lines (35.92%,
-  floor 29%); debug APK and release Web builds succeeded.
+  floor 29%); debug APK and release Web builds succeeded. Published as the
+  ready-for-review [Forgejo PR #4](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/4).
