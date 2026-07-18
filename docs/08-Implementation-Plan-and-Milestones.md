@@ -180,7 +180,7 @@ and the following statements are factually true:
   from tip `f2ebdc2`. `AppSettings` / `kForgejoHost` / `kAppScheme` const
   aliases to `AppConfig`; private host UI strings removed from `lib/`.
 
-- **2026-07-18 — AF-012 / S4 IN PROGRESS:** Synthetic fixtures in
+- **2026-07-18 — AF-012 / S4 IN REVIEW:** Forgejo #14. Synthetic fixtures in
   `test/`+`tool/`; rename `demo_avis_pbook` → `demo_forgejo` (env origin);
   remove machine / owner / repo display-name fixtures.
 
