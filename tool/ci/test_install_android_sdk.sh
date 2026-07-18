@@ -2,6 +2,10 @@
 set -Eeuo pipefail
 
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+[[ $(uname -s) == Linux ]] || {
+  echo 'Android SDK functional smoke requires Linux filesystem semantics' >&2
+  exit 69
+}
 temp_parent=$(realpath -e -- "${TMPDIR:-/tmp}")
 temp_dir=$(mktemp -d "${TMPDIR:-/tmp}/agentforge-sdk-test.XXXXXX")
 temp_dir=$(realpath -e -- "$temp_dir")
@@ -128,6 +132,22 @@ if ln -s "$parent_outside" "$parent_escape_root/platforms" 2>/dev/null; then
   [[ ! -e $parent_outside/android-36 ]]
 else
   echo 'symlinked-parent escape smoke skipped: symlink creation unavailable'
+fi
+
+# A symlinked parent that remains inside the SDK root must not redirect an
+# allow-listed deletion into an unrelated SDK directory.
+inside_redirect_root=$temp_dir/inside-redirect-sdk
+inside_unrelated=$inside_redirect_root/unrelated-platforms
+mkdir -p "$inside_unrelated/android-36"
+touch "$inside_unrelated/android-36/sentinel"
+if ln -s "$inside_unrelated" "$inside_redirect_root/platforms" 2>/dev/null; then
+  status=0
+  PATH="$fake_bin:$PATH" ANDROID_SDK_ROOT="$inside_redirect_root" \
+    bash "$script_dir/install_android_sdk.sh" >/dev/null 2>&1 || status=$?
+  [[ $status -ne 0 ]]
+  [[ -f $inside_unrelated/android-36/sentinel ]]
+else
+  echo 'inside-root parent-symlink smoke skipped: symlink creation unavailable'
 fi
 
 if [[ $(uname -s) == Linux ]]; then

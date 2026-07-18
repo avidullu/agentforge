@@ -39,6 +39,10 @@ void main() {
     expect(wrapper, contains('unable to establish command process group'));
     expect(wrapper, contains(r'printf "%s\n" "$$" >"$pgid_file"'));
     expect(wrapper, contains(r'ps -o stat= --pgid "$child_pgid"'));
+    expect(wrapper, contains('defer_signal'));
+    expect(wrapper, contains('await_child_pgid 100'));
+    expect(wrapper, contains('process-group isolation requires setsid'));
+    expect(wrapper, isNot(contains('using child PID')));
   });
 
   test('all workflow actions stay pinned to immutable commit SHAs', () {

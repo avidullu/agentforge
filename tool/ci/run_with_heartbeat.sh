@@ -25,6 +25,37 @@ child_pid=''
 child_pgid=''
 child_pgid_file=''
 heartbeat_pid=''
+pending_signal=''
+
+command -v setsid >/dev/null 2>&1 || {
+  echo 'ERROR process-group isolation requires setsid' >&2
+  exit 69
+}
+
+read_child_pgid() {
+  local candidate
+  [[ -n $child_pgid ]] && return 0
+  [[ -n $child_pgid_file && -r $child_pgid_file ]] || return 1
+  IFS= read -r candidate <"$child_pgid_file" || return 1
+  [[ $candidate =~ ^[1-9][0-9]*$ ]] || return 1
+  child_pgid=$candidate
+  printf '[%s] SESSION %s pgid=%s\n' \
+    "$(timestamp)" "$label" "$child_pgid"
+}
+
+await_child_pgid() {
+  local attempts=${1:-100}
+  for _ in $(seq 1 "$attempts"); do
+    read_child_pgid && return 0
+    [[ -n $child_pid ]] || return 1
+    if ! kill -0 "$child_pid" 2>/dev/null; then
+      read_child_pgid
+      return $?
+    fi
+    sleep 0.05
+  done
+  read_child_pgid
+}
 
 child_is_alive() {
   if [[ -n $child_pgid ]]; then
@@ -58,6 +89,10 @@ signal_child() {
 
 terminate_child() {
   [[ -n $child_pid ]] || return 0
+  if [[ -z $child_pgid ]] && ! await_child_pgid 100; then
+    printf '[%s] ERROR unable to establish command process group during cleanup\n' \
+      "$(timestamp)" >&2
+  fi
   signal_child TERM
   for _ in $(seq 1 20); do
     child_is_alive || break
@@ -93,6 +128,10 @@ on_signal() {
   exit 130
 }
 
+defer_signal() {
+  pending_signal=$1
+}
+
 trap cleanup EXIT
 trap 'on_signal INT' INT
 trap 'on_signal TERM' TERM
@@ -102,48 +141,45 @@ printf '[%s] COMMAND' "$(timestamp)"
 printf ' %q' "$@"
 printf '\n'
 
-if command -v setsid >/dev/null 2>&1; then
-  # A dedicated session lets cancellation terminate Flutter/Gradle/Java
-  # descendants, not merely the immediate wrapper process. `setsid --wait`
-  # may fork when its caller is already a process-group leader, so `$!` is not
-  # a portable PGID. Record the real session leader from inside the session.
-  pgid_temp_root=${RUNNER_TEMP:-${TMPDIR:-/tmp}}
-  [[ -d $pgid_temp_root ]] || {
-    printf '[%s] ERROR heartbeat temp directory is unavailable\n' \
-      "$(timestamp)" >&2
-    exit 1
-  }
-  child_pgid_file=$(mktemp "$pgid_temp_root/agentforge-pgid.XXXXXX")
-  chmod 600 "$child_pgid_file"
-  setsid --wait bash -c '
-    pgid_file=$1
-    shift
-    printf "%s\n" "$$" >"$pgid_file"
-    exec "$@"
-  ' _ "$child_pgid_file" "$@" &
-  child_pid=$!
-  for _ in $(seq 1 100); do
-    if IFS= read -r child_pgid <"$child_pgid_file" &&
-      [[ $child_pgid =~ ^[1-9][0-9]*$ ]]; then
-      break
-    fi
-    child_pgid=''
-    kill -0 "$child_pid" 2>/dev/null || break
-    sleep 0.05
-  done
-  [[ $child_pgid =~ ^[1-9][0-9]*$ ]] || {
-    printf '[%s] ERROR unable to establish command process group\n' \
-      "$(timestamp)" >&2
-    exit 1
-  }
-  rm -f -- "$child_pgid_file"
-  child_pgid_file=''
-else
-  printf '[%s] WARN process-group isolation unavailable; using child PID\n' \
+# A dedicated session lets cancellation terminate Flutter/Gradle/Java
+# descendants, not merely the immediate wrapper process. `setsid --wait` may
+# fork when its caller is already a process-group leader, so `$!` is not a
+# portable PGID. Record the real session leader from inside the session.
+pgid_temp_root=${RUNNER_TEMP:-${TMPDIR:-/tmp}}
+[[ -d $pgid_temp_root ]] || {
+  printf '[%s] ERROR heartbeat temp directory is unavailable\n' \
     "$(timestamp)" >&2
-  "$@" &
-  child_pid=$!
+  exit 1
+}
+child_pgid_file=$(mktemp "$pgid_temp_root/agentforge-pgid.XXXXXX")
+chmod 600 "$child_pgid_file"
+
+# Defer signals across the narrow spawn/$! assignment window. Without this,
+# a cancellation can arrive after `setsid` starts but before child_pid is set,
+# leaving cleanup with no process to terminate.
+trap 'defer_signal INT' INT
+trap 'defer_signal TERM' TERM
+setsid --wait bash -c '
+  set -Eeuo pipefail
+  pgid_file=$1
+  shift
+  printf "%s\n" "$$" >"$pgid_file"
+  exec "$@"
+' _ "$child_pgid_file" "$@" &
+child_pid=$!
+trap 'on_signal INT' INT
+trap 'on_signal TERM' TERM
+if [[ -n $pending_signal ]]; then
+  on_signal "$pending_signal"
 fi
+
+await_child_pgid 100 || {
+  printf '[%s] ERROR unable to establish command process group\n' \
+    "$(timestamp)" >&2
+  exit 1
+}
+rm -f -- "$child_pgid_file"
+child_pgid_file=''
 
 (
   while kill -0 "$child_pid" 2>/dev/null; do
