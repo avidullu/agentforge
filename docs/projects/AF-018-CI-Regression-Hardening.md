@@ -152,8 +152,14 @@ gates.
 
 - **2026-07-18 — AF-018-A fresh-base checkpoint:** Replayed the independently
   reviewed candidate onto fresh `origin/main` `0a42295`, indexed this tracker
-  from the repository-wide project ledger, and retained the 97-test/35.92%
-  local evidence. Publication and exact-head Forgejo CI remain open gates.
+  from the repository-wide project ledger, and passed the exact fresh-base
+  local gates: 109 randomized tests, 661/1755 line coverage (37.66%), clean
+  format/fatal analysis/actionlint/generated/lock/tree checks, changed-line and
+  global coverage gates, release Web (`index.html` 1,559 bytes; 42,894,252
+  bytes total), debug APK (157,188,160 bytes), and Android lint (0 errors; 7
+  existing warnings). A tracked LF rule plus contract test makes every CI shell
+  smoke runnable from Windows checkouts; heartbeat and SDK escape/repair suites
+  passed. Publication and exact-head Forgejo CI remain open gates.
 
 - **2026-07-18 — AF-018-A local gates green:** The candidate passed Dart
   formatting, fatal-info analysis, 97 randomized tests, unchanged 573/1595
@@ -163,10 +169,10 @@ gates.
   (0 errors; 7 existing warnings). `actionlint` 1.7.12, YAML parsing, Bash
   syntax, and heartbeat success/failure propagation passed. Android lint also
   exposed and this change fixes an omitted `includeSubdomains="false"` on the
-  debug-only `127.0.0.1` network-security entry. Git Bash cannot launch this
-  workstation's CRLF Flutter shell shim through the Linux-oriented heartbeat
-  wrapper; native Windows Flutter gates passed, while exact wrapper + workflow
-  behavior still requires the Linux Forgejo run before merge.
+  debug-only `127.0.0.1` network-security entry. A subsequent fresh checkout
+  exposed CRLF conversion of the new shell scripts; `.gitattributes` now forces
+  `*.sh` to LF and a contract test prevents regression. Exact workflow behavior
+  still requires the Linux Forgejo run before merge.
 
 - **2026-07-18 — AF-018-A started:** Created the regression-hardening tracker
   from merged AF-009 baseline `93e06d7`. Defined observable fast/slow lanes,

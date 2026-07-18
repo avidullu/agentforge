@@ -171,10 +171,11 @@ and the following statements are factually true:
 - **2026-07-18 — AF-018-A READY FOR REVIEW:** Added the canonical multi-PR CI
   regression-hardening tracker and its first candidate. Local evidence on a
   fresh `origin/main` base includes clean formatting/fatal-info analysis,
-  97 randomized tests, unchanged 573/1595 (35.92%) line coverage, pinned
+  109 randomized tests, 661/1755 (37.66%) line coverage, pinned
   Actions, generated/lockfile cleanliness, 35.5% global plus 80% changed-line
   coverage gates, observable process-group heartbeats, exact Android SDK
-  repair/containment smokes, and debug APK/release Web lanes. Merge remains
+  repair/containment smokes, LF-normalized Windows shell checkout tests, release
+  Web, 157,188,160-byte debug APK, and Android lint with 0 errors. Merge remains
   gated on the exact Forgejo PR head reporting the stable required context;
   branch protection is intentionally deferred until that context exists.
 
