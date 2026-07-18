@@ -208,6 +208,29 @@ void main() {
       expect(find.byType(CircleAvatar), findsNothing);
     });
 
+    testWidgets('is a compact passive label without intrinsic sizing', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: StatusBadge(label: 'open')),
+        ),
+      );
+
+      final badge = find.descendant(
+        of: find.byType(StatusBadge),
+        matching: find.byType(Container),
+      );
+      expect(tester.getSize(badge).height, 28);
+      expect(
+        find.descendant(
+          of: find.byType(StatusBadge),
+          matching: find.byType(IntrinsicWidth),
+        ),
+        findsNothing,
+      );
+    });
+
     testWidgets('uses WCAG-safe foreground via foregroundFor', (tester) async {
       // Light green should get black foreground text
       await tester.pumpWidget(
