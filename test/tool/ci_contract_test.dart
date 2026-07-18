@@ -49,7 +49,10 @@ void main() {
       '${repoRoot.path}/.github/workflows/nightly.yml',
     ).readAsStringSync();
     expect(nightly, contains('name: Nightly'));
-    expect(nightly, contains('bash tool/ci/run_local_ci.sh --lane android-smoke'));
+    expect(
+      nightly,
+      contains('bash tool/ci/run_local_ci.sh --lane android-smoke'),
+    );
     expect(nightly, contains('setup-android'));
   });
 
