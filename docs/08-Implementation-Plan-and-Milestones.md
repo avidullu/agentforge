@@ -168,6 +168,11 @@ and the following statements are factually true:
 
 ## Changelog
 
+- **2026-07-18 — AF-018 CI policy:** PR/push CI no longer installs Android
+  SDK packages or builds APKs. `build-smoke` is Web-only; Android SDK +
+  debug APK + lint run on `.github/workflows/nightly.yml` (schedule +
+  workflow_dispatch). Tracked as a policy bug/issue on Forgejo.
+
 - **2026-07-18 — AF-010 / S2 SHIPPED:** Merged Forgejo #10 as `0a42295`
   from tip `6dd4b84`. Origin-bound PAT storage
   (`forgejo_token::<normalizedOrigin>`), legacy unscoped `forgejo_token`

@@ -57,19 +57,21 @@ makes both runner observability and exact-check enforcement first-class.
 
 ### Local harness (debug + remote parity)
 
-Product steps for both lanes live in **`tool/ci/run_local_ci.sh`**. Forgejo
-Actions only checks out the tree, installs Flutter/JDK/Android, then calls
-that script. To reproduce a red quality job:
+Product steps live in **`tool/ci/run_local_ci.sh`**. Forgejo Actions only
+checks out the tree, installs Flutter (and for nightly, JDK/Android), then
+calls that script.
 
 ```bash
 export PATH="$HOME/bin:$HOME/flutter/bin:$PATH"
 cd /path/to/agentforge
 bash tool/ci/run_local_ci.sh --lane quality --base-sha origin/main
-# Web-only build smoke when no Android SDK:
-bash tool/ci/run_local_ci.sh --lane build-smoke --skip-android
+bash tool/ci/run_local_ci.sh --lane build-smoke          # Web only (PR CI)
+bash tool/ci/run_local_ci.sh --lane android-smoke      # SDK+APK+lint (nightly)
 ```
 
-Failed steps print `STEP FAIL: <name>` so the first broken gate is obvious.
+**Policy:** PR/push CI must **not** run `sdkmanager` package installs. Android
+SDK install + debug APK + lint run on the **Nightly** workflow only (and
+manual `workflow_dispatch`). Failed steps print `STEP FAIL: <name>`.
 
 ### Fast `quality` lane
 

@@ -31,6 +31,10 @@ void main() {
       workflow,
       contains('bash tool/ci/run_local_ci.sh --lane build-smoke'),
     );
+    // PR/push CI must not install Android SDK packages (nightly only).
+    expect(workflow, isNot(contains('setup-android')));
+    expect(workflow, isNot(contains('install_android_sdk.sh')));
+    expect(workflow, isNot(contains('android-smoke')));
     expect(workflow, isNot(contains('actions/cache@')));
 
     final harness = File(
@@ -38,8 +42,15 @@ void main() {
     ).readAsStringSync();
     expect(harness, contains('run_with_heartbeat.sh'));
     expect(harness, contains('test_heartbeat.sh'));
-    expect(harness, contains('test_install_android_sdk.sh'));
+    expect(harness, contains('android-smoke'));
     expect(harness, contains('check_diff_coverage.dart'));
+
+    final nightly = File(
+      '${repoRoot.path}/.github/workflows/nightly.yml',
+    ).readAsStringSync();
+    expect(nightly, contains('name: Nightly'));
+    expect(nightly, contains('bash tool/ci/run_local_ci.sh --lane android-smoke'));
+    expect(nightly, contains('setup-android'));
   });
 
   test('all workflow actions stay pinned to immutable commit SHAs', () {
