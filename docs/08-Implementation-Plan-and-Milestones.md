@@ -86,7 +86,7 @@ update its owning tracker row and changelog.
 | AF-008 | Public-code/private-runtime licensing and data-boundary decision | **DECISION NEEDED** | Owner selects license/distribution model | — |
 | AF-016 | PII redaction S0: **planning only** — approved bug doc + tracker rows (umbrella: [docs/11-PII-Redaction.md](11-PII-Redaction.md)) | **SHIPPED** | Merged 2026-07-18 as `4bb48ca` | [Forgejo #3](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/3) · [`7481d77`](https://github.com/avidullu/agentforge/commit/7481d77842f9ba692fdd201eaf76e33c4468421e) · merge [`4bb48ca`](https://github.com/avidullu/agentforge/commit/4bb48caa15965cfaef6c012baaa53bdcbdf7d1d0) |
 | AF-009 | PII redaction S1: schema + generator (build + `--release` unit validation) + tracked synthetic **defaults** + gitignored real gen + `check_no_pii` fixture tests; CI guard **report-only** on real tree (fail-closed only at AF-015) | **SHIPPED** | AF-016; merged 2026-07-18; exact-head MSI suite green | [Forgejo #7](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/7) · tip [`543b005`](https://github.com/avidullu/agentforge/commit/543b005e4cbb535b36d20caf1a7412cb5a65df85) · merge [`93e06d7`](https://github.com/avidullu/agentforge/commit/93e06d79fd78762b8bfa4a8dda45891636730a41) |
-| AF-010 | PII redaction S2: origin-bound credential store + legacy-key deletion migration + upgrade test (app id unchanged ⇒ no sandbox issue) | **PLANNED** | AF-009 | — |
+| AF-010 | PII redaction S2: origin-bound credential store + legacy-key deletion migration + upgrade test (app id unchanged ⇒ no sandbox issue) | **IN REVIEW** | AF-009 | [Forgejo #10](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/10) · [`c19daeb`](https://github.com/avidullu/agentforge/commit/c19daeb648cad67f4df0d35327fbbf4b8b9519d6) |
 | AF-011 | PII redaction S3: wire Dart source to generated **const** `AppConfig` (`deep_link.dart`, `app_settings.dart`, UI strings, providers); remove host literals from `lib/` | **PLANNED** | AF-010 | — |
 | AF-012 | PII redaction S4: tests/tool swap to synthetic fixtures; rename demo tool; remove display name / machine hint | **PLANNED** | AF-011 | — |
 | AF-013 | PII redaction S5: Android neutral namespace `dev.agentforge.app` + Kotlin source-path move; **kept** `applicationId`; manifest host placeholder; AVD custom-scheme CUJ (verified links stay under AF-002) | **PLANNED** | AF-011 | — |
@@ -166,6 +166,15 @@ and the following statements are factually true:
    endpoint, analytics and device work.
 
 ## Changelog
+
+- **2026-07-18 — AF-010 / S2 IN REVIEW:** Origin-bound PAT storage
+  (`forgejo_token::<normalizedOrigin>`), legacy unscoped `forgejo_token`
+  deleted on first load (never auto-bound), `CredentialLoadState` + settings
+  re-entry banner, upgrade unit tests with in-memory secure store. App id
+  unchanged (D1). Does not redact host literals (AF-011). Review 271/272
+  follow-up on tip `c19daeb`: `forgejo_bound_origins` production index,
+  `load(currentOrigin:)`, URL-change PAT clear + explicit banner flag,
+  non-default ports in `normalizeOrigin`, `IndexOnlySecureStore` tests.
 
 - **2026-07-18 — AF-017 IN PROGRESS:** Started the canonical OpenAI Build Week
   submission tracker for an AgentForge Developer Tools entry. The tracker owns

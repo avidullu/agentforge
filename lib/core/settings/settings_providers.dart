@@ -4,6 +4,7 @@ import 'app_settings.dart';
 import 'settings_repository.dart';
 
 final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
+  // Production: Flutter secure storage. Tests override this provider.
   return SettingsRepository();
 });
 
