@@ -43,6 +43,7 @@ void main() {
     ).readAsStringSync();
     expect(harness, contains('run_with_heartbeat.sh'));
     expect(harness, contains('test_heartbeat.sh'));
+    expect(harness, contains('setup_flutter.sh'));
     expect(harness, contains('android-smoke'));
     expect(harness, contains('check_diff_coverage.dart'));
 
