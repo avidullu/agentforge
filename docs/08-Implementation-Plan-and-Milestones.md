@@ -93,7 +93,7 @@ update its owning tracker row and changelog.
 | AF-014 | PII redaction S6: iOS `AgentForge.xcconfig` include chain; preserve RunnerTests bundle id; entitlement host; `-showBuildSettings` both targets | **PLANNED** | AF-011 | — |
 | AF-015 | PII redaction S7: docs/handoff redaction + Forgejo-PR-link rewrite (SHA + GitHub mirror) + `docs/CONFIGURATION.md` + well-known templates/render + tracked-`web/` sweep | **PLANNED** | AF-010, AF-012, AF-013, AF-014 | — |
 | AF-017 | OpenAI Build Week submission (multi-PR): judge-safe synthetic demo, coherent golden path, Codex/GPT-5.6 evidence, hosted test build, media and compliance | **IN PROGRESS** | Owner license/model/session/hosting actions; hard deadline 2026-07-22 05:30 IST | [AF-017 tracker](projects/AF-017-OpenAI-Build-Week-Submission.md) |
-| AF-018 | CI regression hardening (multi-PR): deterministic quality/build lanes, observable heartbeats, coverage ratchets, Android SDK safety | **IN REVIEW — A READY (local green)** | Forgejo #16 stacked into #13 tip; await exact-head green then merge | [AF-018 tracker](projects/AF-018-CI-Regression-Hardening.md) · Forgejo #13 · Forgejo #16 |
+| AF-018 | CI regression hardening (multi-PR): deterministic quality/build lanes, local harness, nightly Android, coverage ratchets | **IN PROGRESS — A SHIPPED** | A: #13 merge `8dfff7c` tip `76ecdd8`; B–E planned | [AF-018 tracker](projects/AF-018-CI-Regression-Hardening.md) · [Forgejo #13](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/13) · issue [#17](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/issues/17) |
 
 > **PII redaction dependency note (rev 3).** Each branch starts from a
 > fresh `origin/main` after its dependencies merge (topological, not
@@ -167,6 +167,13 @@ and the following statements are factually true:
    endpoint, analytics and device work.
 
 ## Changelog
+
+- **2026-07-18 — AF-018-A SHIPPED:** Merged Forgejo #13 as `8dfff7c` from tip
+  `76ecdd8` (includes stacked #16 cancellation/SDK path fixes). Local harness
+  `tool/ci/run_local_ci.sh`; PR CI quality + Web-only build-smoke; Android SDK
+  install/APK/lint on Nightly only (issue #17). Forgejo quality/build-smoke/required
+  green (~58s / ~48s / ~2s).
+
 
 - **2026-07-18 — AF-018 cancellation follow-up checkpoint:** A stacked branch
   now owns forced-fork startup cancellation, portable plain-`setsid` status

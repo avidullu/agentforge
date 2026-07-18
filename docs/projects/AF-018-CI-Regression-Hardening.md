@@ -47,7 +47,7 @@ makes both runner observability and exact-check enforcement first-class.
 
 | Row | Independently shippable deliverable | Status | Dependency / gate | PR / evidence |
 |---|---|---|---|---|
-| AF-018-A | Deterministic quality/build lanes, observable long commands, generated/lock cleanliness, 35.5% global + 80% changed-line coverage, bounded Gradle, exact Android SDK repair, stable required status, unsafe AF-009 test removal | **IN REVIEW — CANCELLATION FOLLOW-UP** | Merge stacked Forgejo #16; then require exact-head Forgejo CI green before #13 merges | Forgejo #13; stacked Forgejo #16 |
+| AF-018-A | Deterministic quality/build lanes, local harness, Web build-smoke, 35.5% global + 80% changed-line coverage, bounded Gradle, Nightly Android SDK/APK/lint, stable required status | **SHIPPED** | Merged 2026-07-18 as `8dfff7c` tip `76ecdd8` | [Forgejo #13](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/13) · [#16 stacked](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/16) · issue [#17](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/issues/17) |
 | AF-018-B | Required high-risk widget, semantics, keyboard, 200% text, and failure-state contracts | **PLANNED** | AF-006 A2 design primitives; AF-018-A | — |
 | AF-018-C | Hermetic loopback transport tests for Forgejo/MCP pagination, auth, redirects, timeouts, retries, malformed data, and idempotency | **PLANNED** | AF-004 protocol decisions; AF-018-A | — |
 | AF-018-D | Pinned-font golden/semantics matrix with manual, reviewable updates | **PLANNED** | AF-006 implementation screens; AF-018-B | — |
@@ -170,6 +170,11 @@ gates.
   `docs/archives/past_projects/` with its lineage preserved.
 
 ## Changelog
+
+- **2026-07-18 — AF-018-A SHIPPED:** Merged Forgejo #13 as `8dfff7c` (tip `76ecdd8`;
+  includes #16). PR CI: quality + Web build-smoke only. Android SDK install +
+  APK + lint on Nightly (`nightly.yml`). Local debug: `tool/ci/run_local_ci.sh`.
+  Issue #17 tracks the no-per-PR-SDK-install policy.
 
 - **2026-07-18 — AF-018-A cancellation checkpoint:** Forgejo runner failures
   exposed incompatible `setsid --wait` behavior and an early-cancellation race
