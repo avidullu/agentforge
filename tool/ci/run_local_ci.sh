@@ -7,9 +7,15 @@
 # Usage:
 #   bash tool/ci/run_local_ci.sh --lane quality
 #   bash tool/ci/run_local_ci.sh --lane quality --base-sha origin/main
-#   bash tool/ci/run_local_ci.sh --lane build-smoke --skip-android
+#   bash tool/ci/run_local_ci.sh --lane build-smoke          # web only (PR CI)
+#   bash tool/ci/run_local_ci.sh --lane android-smoke        # SDK+APK+lint (nightly)
 #   bash tool/ci/run_local_ci.sh --lane all
 #   bash tool/ci/run_local_ci.sh --list-steps
+#
+# Lanes:
+#   quality       — format/analyze/test/coverage/PII/shell smokes (every PR)
+#   build-smoke   — release Web only (every PR; NO Android SDK install)
+#   android-smoke — install/validate SDK packages + debug APK + lint (nightly only)
 #
 # Defaults match .github/workflows/ci.yml env (override via environment):
 #   TEST_RANDOM_SEED=424242
@@ -30,12 +36,11 @@ export AGENTFORGE_CONFIG=${AGENTFORGE_CONFIG:-config/agentforge.config.example.j
 
 lane=quality
 base_sha=''
-skip_android=0
 list_steps=0
 keep_going=0
 
 usage() {
-  sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'
   exit 64
 }
 
@@ -50,7 +55,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --skip-android)
-      skip_android=1
+      # Deprecated: build-smoke is always web-only. Kept as no-op for callers.
       shift
       ;;
     --list-steps)
@@ -230,13 +235,14 @@ run_quality() {
   step_ok
 
   step "CI shell script smokes"
+  # Syntax-check Android install scripts, but do NOT execute SDK install
+  # functional suites here (those are nightly / android-smoke only).
   bash -n tool/ci/run_with_heartbeat.sh
   bash -n tool/ci/test_heartbeat.sh
   bash -n tool/ci/install_android_sdk.sh
   bash -n tool/ci/test_install_android_sdk.sh
   bash -n tool/ci/run_local_ci.sh
   bash tool/ci/test_heartbeat.sh
-  bash tool/ci/test_install_android_sdk.sh
   step_ok
 
   step "final tracked-tree cleanliness"
@@ -254,6 +260,7 @@ run_quality() {
 }
 
 run_build_smoke() {
+  # PR/push CI path: Web only. Never installs Android SDK packages.
   require_cmd flutter
   require_cmd dart
   require_cmd git
@@ -283,20 +290,37 @@ run_build_smoke() {
     "$(du -sh build/web | cut -f1)"
   step_ok
 
-  if [[ $skip_android -eq 1 ]]; then
-    printf '[%s] SKIP android ( --skip-android )\n' "$(timestamp)"
-    return 0
-  fi
+  printf '\n[%s] build-smoke lane complete (web only; no Android SDK)\n' \
+    "$(timestamp)"
+}
+
+run_android_smoke() {
+  # Nightly / on-demand only. Installs or validates SDK packages then APK+lint.
+  require_cmd flutter
+  require_cmd dart
+  require_cmd git
+  require_cmd java
 
   if [[ -z ${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}} ]]; then
-    printf '[%s] SKIP android (ANDROID_SDK_ROOT/ANDROID_HOME unset)\n' \
-      "$(timestamp)"
-    printf '[%s] Install an SDK or re-run with --skip-android for web-only smoke.\n' \
-      "$(timestamp)"
-    return 0
+    echo "ANDROID_SDK_ROOT/ANDROID_HOME must be set for android-smoke" >&2
+    exit 1
   fi
 
-  require_cmd java
+  step "pub get --enforce-lockfile (android-smoke)"
+  hb "Android-lane dependency resolution" 20 -- flutter pub get --enforce-lockfile
+  step_ok
+
+  step "generate synthetic config (android-smoke)"
+  dart run tool/generate_config.dart
+  git diff --exit-code -- \
+    lib/core/config/generated/app_config.selected.dart \
+    agentforge-config.properties \
+    ios/Flutter/AgentForge.xcconfig
+  step_ok
+
+  step "Android SDK install-script unit smoke"
+  bash tool/ci/test_install_android_sdk.sh
+  step_ok
 
   step "install/validate Android SDK packages"
   hb "Android SDK package installation" 30 -- bash tool/ci/install_android_sdk.sh
@@ -319,11 +343,15 @@ run_build_smoke() {
   git diff --exit-code
   step_ok
 
-  printf '\n[%s] build-smoke lane complete\n' "$(timestamp)"
+  printf '\n[%s] android-smoke lane complete\n' "$(timestamp)"
 }
 
 if [[ $list_steps -eq 1 ]]; then
   cat <<'EOF'
+quality:        every PR/push (no Android SDK install)
+build-smoke:    every PR/push — release Web only
+android-smoke:  nightly / workflow_dispatch — SDK packages + debug APK + lint
+
 quality:
   - diagnostics
   - pub get --enforce-lockfile
@@ -335,7 +363,7 @@ quality:
   - global line coverage floor
   - changed-line coverage floor
   - PII report-only inventory
-  - CI shell script smokes
+  - CI shell script smokes (no real SDK install)
   - final tracked-tree cleanliness
 
 build-smoke:
@@ -343,7 +371,15 @@ build-smoke:
   - generate synthetic config
   - flutter build web --release
   - verify web artifact
-  - (optional) Android SDK + apk + lintDebug
+
+android-smoke:
+  - pub get --enforce-lockfile
+  - generate synthetic config
+  - test_install_android_sdk.sh (fake sdkmanager unit smoke)
+  - install_android_sdk.sh (real packages)
+  - flutter build apk --debug
+  - android lintDebug
+  - verify apk
 EOF
   exit 0
 fi
@@ -357,12 +393,16 @@ case "$lane" in
   build-smoke)
     run_build_smoke
     ;;
+  android-smoke)
+    run_android_smoke
+    ;;
   all)
     run_quality
     run_build_smoke
+    run_android_smoke
     ;;
   *)
-    echo "unknown lane: $lane (use quality|build-smoke|all)" >&2
+    echo "unknown lane: $lane (use quality|build-smoke|android-smoke|all)" >&2
     exit 64
     ;;
 esac
