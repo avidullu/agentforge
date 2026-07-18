@@ -16,6 +16,18 @@ cleanup() {
 }
 trap cleanup EXIT
 
+process_is_live() {
+  local pid=$1 stat_line remainder state
+  if [[ -r /proc/$pid/stat ]]; then
+    IFS= read -r stat_line <"/proc/$pid/stat" || return 1
+    remainder=${stat_line##*) }
+    state=${remainder%% *}
+    [[ $state != Z && $state != X ]]
+  else
+    kill -0 "$pid" 2>/dev/null
+  fi
+}
+
 bash "$script_dir/run_with_heartbeat.sh" cancellation-smoke 1 -- \
   bash -c \
   'echo $$ > "$1/child.pid"; sleep 60 & echo $! > "$1/grandchild.pid"; wait' \
@@ -36,8 +48,15 @@ cat "$temp_dir/cancellation.log"
 
 child_pid=$(<"$temp_dir/child.pid")
 grandchild_pid=$(<"$temp_dir/grandchild.pid")
-sleep 1
-if kill -0 "$child_pid" 2>/dev/null || kill -0 "$grandchild_pid" 2>/dev/null; then
+for _ in $(seq 1 20); do
+  if ! process_is_live "$child_pid" && ! process_is_live "$grandchild_pid"; then
+    break
+  fi
+  sleep 0.1
+done
+if process_is_live "$child_pid" || process_is_live "$grandchild_pid"; then
+  ps -o pid=,ppid=,pgid=,stat=,comm= -p \
+    "$child_pid,$grandchild_pid" 2>/dev/null || true
   echo 'heartbeat cancellation left a descendant running' >&2
   exit 1
 fi
