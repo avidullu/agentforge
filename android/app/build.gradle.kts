@@ -1,7 +1,21 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// Tracked synthetic defaults at repo root; optional local overrides only.
+// applicationId remains D1-owned in this file until AF-013 wires placeholders.
+val agentForgeProps = Properties().apply {
+    val tracked = rootProject.file("../agentforge-config.properties")
+    require(tracked.exists()) {
+        "missing tracked agentforge-config.properties (synthetic defaults)"
+    }
+    tracked.inputStream().use { load(it) }
+    val local = rootProject.file("../agentforge-config.local.properties")
+    if (local.exists()) local.inputStream().use { load(it) }
 }
 
 android {
@@ -23,6 +37,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Available for AF-013+ manifest placeholders; unused by product yet.
+        manifestPlaceholders["agentforgeHost"] =
+            agentForgeProps.getProperty("forgejo.host", "forge.example.test")
     }
 
     buildTypes {

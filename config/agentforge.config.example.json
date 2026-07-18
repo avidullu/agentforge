@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "forgejo": {
+    "origin": "https://forge.example.test"
+  },
+  "app": {
+    "applicationId": "com.example.agentforge",
+    "gradleNamespace": "dev.agentforge.app",
+    "urlScheme": "agentforge"
+  },
+  "signing": {
+    "androidSha256Fingerprints": [],
+    "appleTeamId": ""
+  }
+}

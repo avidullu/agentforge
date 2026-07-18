@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://forge.example.test/schemas/agentforge.config.schema.json",
+  "title": "AgentForge config",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "forgejo", "app"],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "forgejo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["origin"],
+      "properties": {
+        "origin": {
+          "type": "string",
+          "description": "Normalized HTTPS origin on port 443 only (no path/userinfo/query)."
+        }
+      }
+    },
+    "app": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applicationId", "gradleNamespace", "urlScheme"],
+      "properties": {
+        "applicationId": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)+$"
+        },
+        "gradleNamespace": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)+$"
+        },
+        "urlScheme": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z][a-z0-9+.-]*$"
+        }
+      }
+    },
+    "signing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "androidSha256Fingerprints": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "appleTeamId": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,3 @@
+# Synthetic fixture that should match a private-looking host pattern.
+origin=https://pii-host.example.invalid
+token_marker=not-a-real-secret-name

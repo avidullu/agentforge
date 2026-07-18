@@ -39,3 +39,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# AgentForge real config (never commit — synthetic defaults are tracked)
+/config/agentforge.config.json
+/agentforge-config.local.properties
+/ios/Flutter/AgentForge.local.xcconfig
+/ios/Runner/Runner.entitlements.local

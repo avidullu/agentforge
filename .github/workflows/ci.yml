@@ -32,10 +32,24 @@ jobs:
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version: '3.44.6'
-          cache: true
+          # Disable actions/cache: runner has intermittent Invalid username/token
+          # when fetching github.com/actions/cache (PR #3 review 260; PR #7 runs
+          # 37/38 failed at ~5m before any repo checks). Prefer download over red CI.
+          cache: false
 
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Generate config (tracked synthetic)
+        run: dart run tool/generate_config.dart
+
+      # Prevent "generate then rewrite" from masking stale/private committed gens.
+      - name: Generated tracked outputs match HEAD
+        run: |
+          git diff --exit-code -- \
+            lib/core/config/generated/app_config.selected.dart \
+            agentforge-config.properties \
+            ios/Flutter/AgentForge.xcconfig
 
       - name: Analyze
         run: flutter analyze --fatal-infos
@@ -48,6 +62,10 @@ jobs:
 
       - name: Enforce coverage floor
         run: dart run tool/check_coverage.dart coverage/lcov.info 29
+
+      - name: PII guard (report-only on real tree; never fail-closed here)
+        run: dart run tool/check_no_pii.dart --mode=report --scope=tracked
+        # Fail-closed full-tree blocklist is AF-015 / S7 only (docs/11 §8.0).
 
       - name: Build Android debug APK
         run: flutter build apk --debug

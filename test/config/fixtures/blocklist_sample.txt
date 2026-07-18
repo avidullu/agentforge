@@ -1,0 +1,3 @@
+# Fixture blocklist patterns (synthetic only — never real owner/host strings).
+pii-host.example.invalid
+supersecret-marker
