@@ -8,8 +8,8 @@
 
 **Owner:** repository owner (username omitted from this tracked doc)
 
-**Evidence (D4 — no private host):** [Forgejo #3 @ c49c668](https://github.com/avidullu/agentforge/commit/c49c668ef51880f314f4c4ac141b1c2b0ebfb327)
-(when the PR branch is mirrored; after merge, update to the merge commit SHA on the public GitHub mirror). Planning row: **AF-016**.
+**Evidence (D4 — no private host):** [Forgejo #3 @ 4051a26](https://github.com/avidullu/agentforge/commit/4051a2650500f98b73d6bbffbb02df25a0e4b72f)
+(branch tip may move; after merge, update to the merge commit SHA on the public GitHub mirror). Planning row: **AF-016**.
 
 ---
 
