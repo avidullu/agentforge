@@ -93,7 +93,7 @@ update its owning tracker row and changelog.
 | AF-014 | PII redaction S6: iOS `AgentForge.xcconfig` include chain; preserve RunnerTests bundle id; entitlement host; `-showBuildSettings` both targets | **PLANNED** | AF-011 | — |
 | AF-015 | PII redaction S7: docs/handoff redaction + Forgejo-PR-link rewrite (SHA + GitHub mirror) + `docs/CONFIGURATION.md` + well-known templates/render + tracked-`web/` sweep | **PLANNED** | AF-010, AF-012, AF-013, AF-014 | — |
 | AF-017 | OpenAI Build Week submission (multi-PR): judge-safe synthetic demo, coherent golden path, Codex/GPT-5.6 evidence, hosted test build, media and compliance | **IN PROGRESS** | Owner license/model/session/hosting actions; hard deadline 2026-07-22 05:30 IST | [AF-017 tracker](projects/AF-017-OpenAI-Build-Week-Submission.md) |
-| AF-018 | CI regression hardening (multi-PR): deterministic quality/build lanes, observable heartbeats, coverage ratchets, Android SDK safety, and high-risk UI/transport/device gates | **IN PROGRESS — A READY FOR REVIEW** | AF-018-A exact-head required context; branch protection after the context exists | [AF-018 tracker](projects/AF-018-CI-Regression-Hardening.md) |
+| AF-018 | CI regression hardening (multi-PR): deterministic quality/build lanes, observable heartbeats, coverage ratchets, Android SDK safety, and high-risk UI/transport/device gates | **IN PROGRESS — A IN REVIEW** | AF-018-A exact-head required context; branch protection after the context exists | [AF-018 tracker](projects/AF-018-CI-Regression-Hardening.md) |
 
 > **PII redaction dependency note (rev 3).** Each branch starts from a
 > fresh `origin/main` after its dependencies merge (topological, not
@@ -168,7 +168,7 @@ and the following statements are factually true:
 
 ## Changelog
 
-- **2026-07-18 — AF-018-A READY FOR REVIEW:** Added the canonical multi-PR CI
+- **2026-07-18 — AF-018-A IN REVIEW (Forgejo #13):** Added the canonical multi-PR CI
   regression-hardening tracker and its first candidate. Local evidence on a
   fresh `origin/main` base includes clean formatting/fatal-info analysis,
   109 randomized tests, 661/1755 (37.66%) line coverage, pinned
