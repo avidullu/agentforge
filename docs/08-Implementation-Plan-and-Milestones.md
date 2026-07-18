@@ -93,7 +93,7 @@ update its owning tracker row and changelog.
 | AF-014 | PII redaction S6: iOS `AgentForge.xcconfig` include chain; preserve RunnerTests bundle id; entitlement host; `-showBuildSettings` both targets | **PLANNED** | AF-011 | — |
 | AF-015 | PII redaction S7: docs/handoff redaction + Forgejo-PR-link rewrite (SHA + GitHub mirror) + `docs/CONFIGURATION.md` + well-known templates/render + tracked-`web/` sweep | **PLANNED** | AF-010, AF-012, AF-013, AF-014 | — |
 | AF-017 | OpenAI Build Week submission (multi-PR): judge-safe synthetic demo, coherent golden path, Codex/GPT-5.6 evidence, hosted test build, media and compliance | **IN PROGRESS** | Owner license/model/session/hosting actions; hard deadline 2026-07-22 05:30 IST | [AF-017 tracker](projects/AF-017-OpenAI-Build-Week-Submission.md) |
-| AF-018 | CI regression hardening (multi-PR): deterministic quality/build lanes, observable heartbeats, coverage ratchets, Android SDK safety, and high-risk UI/transport/device gates | **IN PROGRESS — A IN REVIEW** | AF-018-A exact-head required context; branch protection after the context exists | [AF-018 tracker](projects/AF-018-CI-Regression-Hardening.md) |
+| AF-018 | CI regression hardening (multi-PR): deterministic quality/build lanes, observable heartbeats, coverage ratchets, Android SDK safety | **IN PROGRESS — A OPEN** | Forgejo #13 tip pending green quality CI | [AF-018 tracker](projects/AF-018-CI-Regression-Hardening.md) · [Forgejo #13](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/13) |
 
 > **PII redaction dependency note (rev 3).** Each branch starts from a
 > fresh `origin/main` after its dependencies merge (topological, not
@@ -168,17 +168,6 @@ and the following statements are factually true:
 
 ## Changelog
 
-- **2026-07-18 — AF-018-A IN REVIEW (Forgejo #13):** Added the canonical multi-PR CI
-  regression-hardening tracker and its first candidate. Local evidence on a
-  fresh `origin/main` base includes clean formatting/fatal-info analysis,
-  109 randomized tests, 661/1755 (37.66%) line coverage, pinned
-  Actions, generated/lockfile cleanliness, 35.5% global plus 80% changed-line
-  coverage gates, observable process-group heartbeats, exact Android SDK
-  repair/containment smokes, LF-normalized Windows shell checkout tests, release
-  Web, 157,188,160-byte debug APK, and Android lint with 0 errors. Merge remains
-  gated on the exact Forgejo PR head reporting the stable required context;
-  branch protection is intentionally deferred until that context exists.
-
 - **2026-07-18 — AF-010 / S2 SHIPPED:** Merged Forgejo #10 as `0a42295`
   from tip `6dd4b84`. Origin-bound PAT storage
   (`forgejo_token::<normalizedOrigin>`), legacy unscoped `forgejo_token`
@@ -193,8 +182,11 @@ and the following statements are factually true:
   aliases to `AppConfig`; private host UI strings removed from `lib/`.
 
 - **2026-07-18 — AF-012 / S4 SHIPPED:** Merged Forgejo #14 as `e5bec35` from tip
-  `6dbe856`. Synthetic fixtures in `test/`+`tool/`; `demo_forgejo` (env origin);
-  machine / owner / repo display-name fixtures scrubbed.
+  `6dbe856`. Synthetic fixtures; `demo_forgejo`; scrubbed REALNAME/MACHINE fixtures.
+
+- **2026-07-18 — AF-017 testing/lint shipment (Forgejo #15):** Stronger
+  `analysis_options`, PR template, model/theme/MCP tests, `tool/run_all_tests.dart`.
+  Competing CI rewrite dropped (AF-018 owns CI hardening). Merge `3fec656`.
 
 - **2026-07-18 — AF-017 IN PROGRESS:** Started the canonical OpenAI Build Week
   submission tracker for an AgentForge Developer Tools entry. The tracker owns
