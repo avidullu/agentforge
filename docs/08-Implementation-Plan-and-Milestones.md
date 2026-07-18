@@ -82,6 +82,13 @@ must update its row and this document's changelog.
 | AF-006 | Design-handoff implementation and WCAG 2.1 AA pass | **PLANNED** | AF-003 information architecture | — |
 | AF-007 | CI/release hardening: format, coverage floor, Android build, pinned toolchain | **SHIPPED IN AF-001** | Forgejo run 12 green | [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1) |
 | AF-008 | Public-code/private-runtime licensing and data-boundary decision | **DECISION NEEDED** | Owner selects license/distribution model | — |
+| AF-009 | PII redaction S1: one versioned config schema + generator + validator + structural `check_no_pii` guard scaffold (umbrella bug: [docs/11-PII-Redaction.md](11-PII-Redaction.md)) | **PLANNED** | PR #3 review LGTM | [Forgejo #3](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/3) |
+| AF-010 | PII redaction S2: origin-bound credential store + legacy-token migration + upgrade test | **PLANNED** | AF-009 | — |
+| AF-011 | PII redaction S3: wire Dart source to generated config (`deep_link.dart`, `app_settings.dart`, UI strings, providers) | **PLANNED** | AF-009 | — |
+| AF-012 | PII redaction S4: tests/tool swap to synthetic fixtures; rename demo tool | **PLANNED** | AF-011 | — |
+| AF-013 | PII redaction S5: Android fixed neutral namespace + stable release id + debug suffix + manifest placeholder + installed-AVD deep-link CUJ | **PLANNED** | AF-009 | — |
+| AF-014 | PII redaction S6: iOS `Generated.xcconfig` + entitlement host + rendered plist/AASA validation + `-showBuildSettings` (macOS no-sign) | **PLANNED** | AF-009 | — |
+| AF-015 | PII redaction S7: docs/handoff redaction + `docs/CONFIGURATION.md` + well-known templates/render + CI guard wire-up | **PLANNED** | AF-003, AF-011, AF-013, AF-014 | — |
 
 ## Definition of Done
 
@@ -140,15 +147,20 @@ and the following statements are factually true:
 
 ## Changelog
 
-- **2026-07-18 — AF-009 BUG FILED (not yet implemented):** Opened
-  [`docs/11-PII-Redaction.md`](11-PII-Redaction.md) documenting hard-coded
-  owner/machine identifiers (`avis-pbook.tail651ec3.ts.net`,
-  `com.avidullu.agentforge`, `avidullu`, `C:\Users\avidu\...`, `Avi Dullu`)
-  across source, native config, tests, and docs. Proposes a four-layer
-  extensible mechanism (Dart `AppConfig`, native parameterization, doc
-  templates, `tool/check_no_pii.dart` guard) with a seven-step implementation
-  strategy. Awaiting LGTM before implementation; ledger row `AF-009` will be
-  added when S1 starts.
+- **2026-07-18 — AF-009 BUG REVISED (rev 2, addressing PR #3 review):** The
+  PR #3 review (commit-pinned at head `3370b42`) requested changes with six
+  findings: self-exempting guard, four drifting config channels, PAT reuse
+  across origins, Android namespace/launch break, unimplementable Dart
+  config, and tracker/audit/verification errors. Revision 2 of
+  [`docs/11-PII-Redaction.md`](11-PII-Redaction.md) replaces the four-channel
+  model with **one versioned config schema + generator + validator**, makes
+  the credential store **origin-bound**, moves the PII blocklist **outside
+  the public tree**, narrows the goal to current-tree/default sanitization,
+  corrects the Android namespace design, and accepts all four review
+  decisions (canonical repo reference allow-listed; stable application id;
+  history rewrite deferred; schema-backed approach). The workstream is now
+  split into ledger rows **AF-009…AF-015** (one per PR, sequential deps).
+  Awaiting re-review LGTM before S1 starts.
 - **2026-07-18 — AF-001 / AF-007 SHIPPED:** Replaced aspirational M0-M5
   completion claims with
   verified statuses and gates. Added the design audit, deep-link/app-links
