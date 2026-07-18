@@ -1,14 +1,13 @@
 # AgentForge handoff pointer
 
-Project status is maintained only in
-[`docs/08-Implementation-Plan-and-Milestones.md`](docs/08-Implementation-Plan-and-Milestones.md).
+**Start here for continuity:**
 
-The canonical living session handoff is in the shared project-memory store:
+1. **Living handoff (preferred):**  
+   `C:\Users\avidu\OneDrive\Documents\claude-sync\memory\Agentforge\session-handoff.md`  
+   (WSL: `/mnt/c/Users/avidu/OneDrive/Documents/claude-sync/memory/Agentforge/session-handoff.md`)
 
-```text
-C:\Users\avidu\OneDrive\Documents\claude-sync\memory\Agentforge\session-handoff.md
-```
+2. **In-repo copy:** [`SESSION_HANDOFF.md`](./SESSION_HANDOFF.md)
 
-[`SESSION_HANDOFF.md`](SESSION_HANDOFF.md) remains a repository-compatible
-ramp-up pointer; it is not a milestone tracker. Do not duplicate lifecycle,
-progress rows, or completion claims here.
+3. **Milestone tracker:** [`docs/08-Implementation-Plan-and-Milestones.md`](docs/08-Implementation-Plan-and-Milestones.md)
+
+Do not treat this pointer file as the progress ledger.
