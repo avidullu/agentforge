@@ -23,10 +23,24 @@ timestamp() {
 started_at=$SECONDS
 child_pid=''
 child_pgid=''
+child_pgid_file=''
 heartbeat_pid=''
 
 child_is_alive() {
   if [[ -n $child_pgid ]]; then
+    local states state
+    # Container PID 1 implementations do not always reap an orphaned zombie
+    # promptly. A zombie cannot execute or retain resources other than its
+    # process-table entry, so do not mistake it for a live command and spin
+    # through the entire cancellation grace period.
+    if states=$(ps -o stat= --pgid "$child_pgid" 2>/dev/null); then
+      while IFS= read -r state; do
+        state=${state#"${state%%[![:space:]]*}"}
+        [[ -z $state || ${state:0:1} == Z || ${state:0:1} == X ]] && continue
+        return 0
+      done <<<"$states"
+      return 1
+    fi
     kill -0 -- "-$child_pgid" 2>/dev/null
   else
     kill -0 "$child_pid" 2>/dev/null
@@ -67,6 +81,9 @@ cleanup() {
   if [[ -n $child_pid ]]; then
     terminate_child
   fi
+  if [[ -n $child_pgid_file ]]; then
+    rm -f -- "$child_pgid_file"
+  fi
 }
 
 on_signal() {
@@ -87,21 +104,55 @@ printf '\n'
 
 if command -v setsid >/dev/null 2>&1; then
   # A dedicated session lets cancellation terminate Flutter/Gradle/Java
-  # descendants, not merely the immediate wrapper process.
-  #
-  # util-linux supports `setsid --wait` (or `-w`). BusyBox / older setsid
-  # reject unknown flags and exit immediately — that was failing Forgejo
-  # quality ~1m after Flutter setup on the first heartbeat-wrapped step.
-  # Probe once; fall back to plain `setsid` which execs into the command.
+  # descendants, not merely the immediate wrapper process. Record the real
+  # session leader because util-linux `setsid --wait` may fork. BusyBox and
+  # older implementations reject `--wait`, so probe and use plain `setsid`
+  # only when it will remain the session leader we can wait on.
+  pgid_temp_root=${RUNNER_TEMP:-${TMPDIR:-/tmp}}
+  [[ -d $pgid_temp_root ]] || {
+    printf '[%s] ERROR heartbeat temp directory is unavailable\n' \
+      "$(timestamp)" >&2
+    exit 1
+  }
+  child_pgid_file=$(mktemp "$pgid_temp_root/agentforge-pgid.XXXXXX")
+  chmod 600 "$child_pgid_file"
+  setsid_supports_wait=0
+  setsid_command=(setsid)
   if setsid --wait true >/dev/null 2>&1; then
-    setsid --wait "$@" &
+    setsid_supports_wait=1
+    setsid_command+=(--wait)
   else
     printf '[%s] WARN setsid --wait unavailable; using plain setsid\n' \
       "$(timestamp)" >&2
-    setsid "$@" &
   fi
+  "${setsid_command[@]}" bash -c '
+    pgid_file=$1
+    shift
+    printf "%s\n" "$$" >"$pgid_file"
+    exec "$@"
+  ' _ "$child_pgid_file" "$@" &
   child_pid=$!
-  child_pgid=$child_pid
+  for _ in $(seq 1 100); do
+    if IFS= read -r child_pgid <"$child_pgid_file" &&
+      [[ $child_pgid =~ ^[1-9][0-9]*$ ]]; then
+      break
+    fi
+    child_pgid=''
+    kill -0 "$child_pid" 2>/dev/null || break
+    sleep 0.05
+  done
+  [[ $child_pgid =~ ^[1-9][0-9]*$ ]] || {
+    printf '[%s] ERROR unable to establish command process group\n' \
+      "$(timestamp)" >&2
+    exit 1
+  }
+  if [[ $setsid_supports_wait -eq 0 && $child_pid -ne $child_pgid ]]; then
+    printf '[%s] ERROR plain setsid forked; command status is not observable\n' \
+      "$(timestamp)" >&2
+    exit 1
+  fi
+  rm -f -- "$child_pgid_file"
+  child_pgid_file=''
 else
   printf '[%s] WARN process-group isolation unavailable; using child PID\n' \
     "$(timestamp)" >&2
