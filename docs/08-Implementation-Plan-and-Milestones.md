@@ -88,11 +88,12 @@ update its owning tracker row and changelog.
 | AF-009 | PII redaction S1: schema + generator (build + `--release` unit validation) + tracked synthetic **defaults** + gitignored real gen + `check_no_pii` fixture tests; CI guard **report-only** on real tree (fail-closed only at AF-015) | **SHIPPED** | AF-016; merged 2026-07-18; exact-head MSI suite green | [Forgejo #7](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/7) · tip [`543b005`](https://github.com/avidullu/agentforge/commit/543b005e4cbb535b36d20caf1a7412cb5a65df85) · merge [`93e06d7`](https://github.com/avidullu/agentforge/commit/93e06d79fd78762b8bfa4a8dda45891636730a41) |
 | AF-010 | PII redaction S2: origin-bound credential store + legacy-key deletion migration + upgrade test (app id unchanged ⇒ no sandbox issue) | **SHIPPED** | AF-009 | [Forgejo #10](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/10) merged as [`0a42295`](https://github.com/avidullu/agentforge/commit/0a42295e3d9d) · tip [`6dd4b84`](https://github.com/avidullu/agentforge/commit/6dd4b84f5a73) |
 | AF-011 | PII redaction S3: wire Dart source to generated **const** `AppConfig` (`deep_link.dart`, `app_settings.dart`, UI strings, providers); remove host literals from `lib/` | **SHIPPED** | AF-010 | [Forgejo #12](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/12) merged as [`b0156cc`](https://github.com/avidullu/agentforge/commit/b0156ccb3ec5) · tip [`f2ebdc2`](https://github.com/avidullu/agentforge/commit/f2ebdc2268b4) |
-| AF-012 | PII redaction S4: tests/tool swap to synthetic fixtures; rename demo tool; remove display name / machine hint | **IN REVIEW** | AF-011 | [Forgejo #14](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/14) · [`16b975c`](https://github.com/avidullu/agentforge/commit/16b975ced30a1a7420e257fbbe56b8e6c6691fed) |
+| AF-012 | PII redaction S4: tests/tool swap to synthetic fixtures; rename demo tool; remove display name / machine hint | **SHIPPED** | AF-011 | [Forgejo #14](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/14) merged as [`e5bec35`](https://github.com/avidullu/agentforge/commit/e5bec354420c) · tip [`6dbe856`](https://github.com/avidullu/agentforge/commit/6dbe856e2260) |
 | AF-013 | PII redaction S5: Android neutral namespace `dev.agentforge.app` + Kotlin source-path move; **kept** `applicationId`; manifest host placeholder; AVD custom-scheme CUJ (verified links stay under AF-002) | **PLANNED** | AF-011 | — |
 | AF-014 | PII redaction S6: iOS `AgentForge.xcconfig` include chain; preserve RunnerTests bundle id; entitlement host; `-showBuildSettings` both targets | **PLANNED** | AF-011 | — |
 | AF-015 | PII redaction S7: docs/handoff redaction + Forgejo-PR-link rewrite (SHA + GitHub mirror) + `docs/CONFIGURATION.md` + well-known templates/render + tracked-`web/` sweep | **PLANNED** | AF-010, AF-012, AF-013, AF-014 | — |
 | AF-017 | OpenAI Build Week submission (multi-PR): judge-safe synthetic demo, coherent golden path, Codex/GPT-5.6 evidence, hosted test build, media and compliance | **IN PROGRESS** | Owner license/model/session/hosting actions; hard deadline 2026-07-22 05:30 IST | [AF-017 tracker](projects/AF-017-OpenAI-Build-Week-Submission.md) |
+| AF-018 | CI regression hardening (multi-PR): deterministic quality/build lanes, observable heartbeats, coverage ratchets, Android SDK safety | **IN PROGRESS — A OPEN** | Forgejo #13 tip pending green quality CI | [AF-018 tracker](projects/AF-018-CI-Regression-Hardening.md) · [Forgejo #13](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/13) |
 
 > **PII redaction dependency note (rev 3).** Each branch starts from a
 > fresh `origin/main` after its dependencies merge (topological, not
@@ -180,9 +181,12 @@ and the following statements are factually true:
   from tip `f2ebdc2`. `AppSettings` / `kForgejoHost` / `kAppScheme` const
   aliases to `AppConfig`; private host UI strings removed from `lib/`.
 
-- **2026-07-18 — AF-012 / S4 IN REVIEW:** Forgejo #14. Synthetic fixtures in
-  `test/`+`tool/`; rename `demo_avis_pbook` → `demo_forgejo` (env origin);
-  remove machine / owner / repo display-name fixtures.
+- **2026-07-18 — AF-012 / S4 SHIPPED:** Merged Forgejo #14 as `e5bec35` from tip
+  `6dbe856`. Synthetic fixtures; `demo_forgejo`; scrubbed REALNAME/MACHINE fixtures.
+
+- **2026-07-18 — AF-017 testing/lint shipment (Forgejo #15):** Stronger
+  `analysis_options`, PR template, model/theme/MCP tests, `tool/run_all_tests.dart`.
+  Competing CI rewrite dropped (AF-018 owns CI hardening). Merge `3fec656`.
 
 - **2026-07-18 — AF-017 IN PROGRESS:** Started the canonical OpenAI Build Week
   submission tracker for an AgentForge Developer Tools entry. The tracker owns
