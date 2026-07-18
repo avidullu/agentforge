@@ -83,12 +83,12 @@ must update its row and this document's changelog.
 | AF-007 | CI/release hardening: format, coverage floor, Android build, pinned toolchain | **SHIPPED IN AF-001** | Forgejo run 12 green | [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1) |
 | AF-008 | Public-code/private-runtime licensing and data-boundary decision | **DECISION NEEDED** | Owner selects license/distribution model | — |
 | AF-016 | PII redaction S0: **planning only** — approved bug doc + tracker rows (umbrella: [docs/11-PII-Redaction.md](11-PII-Redaction.md)) | **IN REVIEW** | — | [Forgejo #3 @ 4051a26](https://github.com/avidullu/agentforge/commit/4051a2650500f98b73d6bbffbb02df25a0e4b72f) |
-| AF-009 | PII redaction S1: one versioned config schema + generator (build + release-render validation) + checked-in synthetic `app_config.gen.dart` + explicit generator/CI step + report-only structural `check_no_pii` scaffold + canonical CI blocklist gate (fail-closed) | **PLANNED** | AF-016 | — |
+| AF-009 | PII redaction S1: schema + generator (build + `--release` unit validation) + tracked synthetic **defaults** + gitignored real gen + `check_no_pii` fixture tests; CI guard **report-only** on real tree (fail-closed only at AF-015) | **PLANNED** | AF-016 | — |
 | AF-010 | PII redaction S2: origin-bound credential store + legacy-key deletion migration + upgrade test (app id unchanged ⇒ no sandbox issue) | **PLANNED** | AF-009 | — |
 | AF-011 | PII redaction S3: wire Dart source to generated **const** `AppConfig` (`deep_link.dart`, `app_settings.dart`, UI strings, providers); remove host literals from `lib/` | **PLANNED** | AF-010 | — |
 | AF-012 | PII redaction S4: tests/tool swap to synthetic fixtures; rename demo tool; remove display name / machine hint | **PLANNED** | AF-011 | — |
 | AF-013 | PII redaction S5: Android neutral namespace `dev.agentforge.app` + Kotlin source-path move; **kept** `applicationId`; manifest host placeholder; AVD custom-scheme CUJ (verified links stay under AF-002) | **PLANNED** | AF-011 | — |
-| AF-014 | PII redaction S6: iOS remove per-target bundle-id overrides; entitlement host from config; rendered plist/AASA validation; `-showBuildSettings` (macOS no-sign) | **PLANNED** | AF-011 | — |
+| AF-014 | PII redaction S6: iOS `AgentForge.xcconfig` include chain; preserve RunnerTests bundle id; entitlement host; `-showBuildSettings` both targets | **PLANNED** | AF-011 | — |
 | AF-015 | PII redaction S7: docs/handoff redaction + Forgejo-PR-link rewrite (SHA + GitHub mirror) + `docs/CONFIGURATION.md` + well-known templates/render + tracked-`web/` sweep | **PLANNED** | AF-010, AF-012, AF-013, AF-014 | — |
 
 > **PII redaction dependency note (rev 3).** Each branch starts from a
@@ -156,6 +156,12 @@ and the following statements are factually true:
 6. Apply the component/state/accessibility plan in the design review.
 
 ## Changelog
+
+- **2026-07-18 — AF-016 / PR #3 rev 5 (review 250):** Stage fail-closed
+  blocklist to S7 only; tracked synthetic defaults + gitignored real gen;
+  iOS `AgentForge.xcconfig` include chain + RunnerTests identity; honest
+  NUL-aware audit via tool; tracker D4 rewrite deferred truthfully to S7.
+  See [docs/11-PII-Redaction.md](11-PII-Redaction.md) §12 review-250 table.
 
 - **2026-07-18 — AF-016 / PR #3 rev 4 (third-pass resolution):** Planning
   doc no longer embeds live blocklist strings or private-host URLs (D4
