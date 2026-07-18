@@ -68,13 +68,13 @@ must update its row and this document's changelog.
 
 | ID | Deliverable | Status | Dependency / gate | PR |
 |---|---|---|---|---|
-| AF-001 | Baseline audit, deep-link ownership, review head pinning, privacy and side-car safety | **READY FOR REVIEW** | Forgejo PR checks and review | Pending PR creation |
+| AF-001 | Baseline audit, deep-link ownership, review head pinning, privacy and side-car safety | **IN REVIEW** | Forgejo PR checks and review | [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1) |
 | AF-002 | Release signing and hosted `assetlinks.json` / AASA; Gmail device CUJ | **BLOCKED** | Android signing identity, Apple Team ID, reachable association strategy | — |
 | AF-003 | Changes/diff viewer, checks, conflicts, mergeability, reviewed-head guard | **PLANNED** | Forgejo API/UI design | — |
 | AF-004 | Authenticated HTTPS agent protocol and compliant MCP adapter | **PLANNED** | Threat model, endpoint identity/pairing, stable MCP 2025-11-25 | — |
 | AF-005 | Typed agent health, heartbeat TTL, partial failure, durable provenance | **PARTIAL** | AF-004 identity model | — |
 | AF-006 | Design-handoff implementation and WCAG 2.1 AA pass | **PLANNED** | AF-003 information architecture | — |
-| AF-007 | CI/release hardening: format, coverage floor, Android build, pinned toolchain | **READY IN AF-001** | Forgejo PR checks | AF-001 initially |
+| AF-007 | CI/release hardening: format, coverage floor, Android build, pinned toolchain | **IN REVIEW IN AF-001** | Forgejo PR checks | [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1) |
 | AF-008 | Public-code/private-runtime licensing and data-boundary decision | **DECISION NEEDED** | Owner selects license/distribution model | — |
 
 ## Definition of Done
@@ -143,7 +143,8 @@ and the following statements are factually true:
   before context reads and feedback writes, debug-only Android/iOS loopback
   policies, retry-stable endpoint-bound feedback IDs, receipt enforcement and
   mock deduplication, redirect blocking, exact HTTPS-origin routing, and
-  request-changes body validation.
+  request-changes body validation. Published as ready-for-review
+  [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1).
   The candidate passed 46 tests at 36.05% coverage, release-web and debug-APK
   builds, Chrome and Android 16 AVD UI smokes, a custom-scheme deep-link smoke,
   and the mock side-car receipt flow.
