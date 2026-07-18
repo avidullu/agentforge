@@ -8,11 +8,11 @@ void main() {
   group('ForgejoUser', () {
     test('fromJson parses login and full_name', () {
       final user = ForgejoUser.fromJson({
-        'login': 'avidullu',
-        'full_name': 'Avi Dullu',
+        'login': 'devuser',
+        'full_name': 'Dev User',
       });
-      expect(user.login, 'avidullu');
-      expect(user.fullName, 'Avi Dullu');
+      expect(user.login, 'devuser');
+      expect(user.fullName, 'Dev User');
     });
 
     test('fromJson handles null gracefully', () {

@@ -4,47 +4,17 @@ on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
 
 permissions:
   contents: read
 
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  # ------------------------------------------------------------------
-  # Fast gate: formatting + static analysis — fails before the expensive
-  # jobs run. Catches the most common issues in ~1 min.
-  # ------------------------------------------------------------------
-  lint-and-analyze:
-    name: Format + analyze (fast gate)
+  analyze-and-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v6
-      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
-        with:
-          flutter-version: '3.44.6'
-          cache: true
-      - name: Install dependencies
-        run: flutter pub get
-      - name: Check formatting
-        run: dart format --output=none --set-exit-if-changed lib test tool
-      - name: Static analysis
-        run: flutter analyze --fatal-infos
 
-  # ------------------------------------------------------------------
-  # Full suite: config gen, tests + coverage floor, PII guard, builds.
-  # Only runs if the fast gate is green.
-  # ------------------------------------------------------------------
-  test-and-build:
-    name: Test + coverage + PII guard + builds
-    needs: lint-and-analyze
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
@@ -58,7 +28,8 @@ jobs:
           packages: >-
             platform-tools platforms;android-36 build-tools;36.0.0
 
-      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version: '3.44.6'
           # Disable actions/cache: runner has intermittent Invalid username/token
@@ -80,8 +51,17 @@ jobs:
             agentforge-config.properties \
             ios/Flutter/AgentForge.xcconfig
 
-      - name: Run tests with coverage
-        run: dart run tool/run_all_tests.dart
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed lib test tool
+
+      - name: Test with coverage
+        run: flutter test --coverage
+
+      - name: Enforce coverage floor
+        run: dart run tool/check_coverage.dart coverage/lcov.info 29
 
       - name: PII guard (report-only on real tree; never fail-closed here)
         run: dart run tool/check_no_pii.dart --mode=report --scope=tracked

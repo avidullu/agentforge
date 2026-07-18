@@ -1,34 +1,25 @@
 /// Unified test runner for AgentForge.
 ///
-/// A single, discoverable entry point for the full test suite + coverage gate:
-///
 /// ```bash
-/// dart run tool/run_all_tests.dart              # full suite + coverage floor
-/// dart run tool/run_all_tests.dart -- -t agent   # filter by test name (passthrough)
-/// dart run tool/run_all_tests.dart -- --no-coverage  # skip coverage
-/// dart run tool/run_all_tests.dart --floor 35    # raise the coverage floor
+/// dart run tool/run_all_tests.dart
+/// dart run tool/run_all_tests.dart -- -t agent
+/// dart run tool/run_all_tests.dart -- --no-coverage
+/// dart run tool/run_all_tests.dart --floor 35
 /// ```
 ///
 /// Everything after `--` is passed through to `flutter test`.
-///
-/// Exit code is non-zero on test failure or coverage below floor.
-/// Coverage floor defaults to 29% (tracker baseline; ratchet UP only).
 library;
 
 import 'dart:io';
-
-import 'check_coverage.dart' as coverage;
 
 const _defaultFloor = 29;
 const _coverageFile = 'coverage/lcov.info';
 
 Future<void> main(List<String> args) async {
-  // Split args: everything after '--' goes to flutter test.
   final split = args.indexOf('--');
   final ourArgs = split == -1 ? args : args.sublist(0, split);
   final flutterArgs = split == -1 ? <String>[] : args.sublist(split + 1);
 
-  // Parse our args.
   var floor = _defaultFloor;
   var noCoverage = false;
   for (var i = 0; i < ourArgs.length; i++) {
@@ -40,7 +31,6 @@ Future<void> main(List<String> args) async {
     }
   }
 
-  // Build the flutter test command.
   final testArgs = <String>['test'];
   if (!noCoverage) {
     testArgs.add('--coverage');
@@ -54,39 +44,42 @@ Future<void> main(List<String> args) async {
   }
   stdout.writeln();
 
-  // Run flutter test.
-  final result = await Process.run('flutter', testArgs);
-
+  final result = await Process.run('flutter', testArgs, runInShell: true);
+  stdout.write(result.stdout);
+  stderr.write(result.stderr);
   if (result.exitCode != 0) {
-    stderr.writeln('\n❌ Tests failed (exit ${result.exitCode}).');
+    stderr.writeln('\nTests failed (exit ${result.exitCode}).');
     exitCode = result.exitCode;
     return;
   }
 
-  // Coverage gate.
   if (!noCoverage) {
     final covFile = File(_coverageFile);
     if (!covFile.existsSync()) {
       stderr.writeln(
-        '⚠  No coverage file found at $_coverageFile — skipping floor check.',
+        'No coverage file at $_coverageFile — skipping floor check.',
       );
     } else {
-      try {
-        coverage.main([_coverageFile, '$floor']);
-      } catch (_) {
-        // check_coverage sets exitCode itself
-      }
-      if (exitCode != 0) {
+      final cov = await Process.run('dart', [
+        'run',
+        'tool/check_coverage.dart',
+        _coverageFile,
+        '$floor',
+      ], runInShell: true);
+      stdout.write(cov.stdout);
+      stderr.write(cov.stderr);
+      if (cov.exitCode != 0) {
         stderr.writeln(
-          '\n❌ Coverage below floor ($floor%). Ratchet the floor UP, never down.',
+          '\nCoverage below floor ($floor%). Ratchet the floor UP, never down.',
         );
+        exitCode = cov.exitCode;
         return;
       }
     }
   }
 
-  stdout.writeln('\n✅ All tests passed.');
+  stdout.writeln('\nAll tests passed.');
   if (!noCoverage && exitCode == 0) {
-    stdout.writeln('✅ Coverage floor ($floor%) met.');
+    stdout.writeln('Coverage floor ($floor%) met.');
   }
 }
