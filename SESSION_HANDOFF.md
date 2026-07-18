@@ -14,7 +14,8 @@ checked-in copy is a repository-visible checkpoint.
 - AF-017 OpenAI Build Week submission work is **IN PROGRESS**. Its canonical
   tracker is `docs/projects/AF-017-OpenAI-Build-Week-Submission.md`; the hard
   deadline is 2026-07-22 05:30 IST. Owner registration, license,
-  GPT-5.6/`/feedback`, hosting, and YouTube actions remain open.
+  GPT-5.6/`/feedback`, hosting, and YouTube actions remain open. Tracker
+  bootstrap AF-017-A shipped via Forgejo #9 as `798b563`.
 - Forgejo PR #7 (AF-009 / PII-redaction S1) merged as `93e06d7` from verified
   tip `543b005`; GitHub `main` was fast-forwarded to the same merge SHA.
 - All review findings 261 and 263–266 were resolved. The final AVIS-MSI suite
