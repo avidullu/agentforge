@@ -60,16 +60,22 @@ namespace/host details. None of the binaries above is tracked by this intake.
 
 ## Integrity check
 
-From this package directory on PowerShell, verify the files that are actually
-tracked:
+From this package directory on PowerShell, assert the tracked token datum
+against the recorded digest:
 
 ```powershell
-Get-ChildItem -Recurse -File |
-  Sort-Object FullName |
-  ForEach-Object {
-    "{0} {1}" -f $_.FullName, (Get-FileHash -Algorithm SHA256 $_).Hash
-  }
+$expected = "0BD39DB7EF066495EADD855172B21A058CB10E1982E603AD9E8E2D4CA067EC2D"
+$actual = (Get-FileHash -Algorithm SHA256 `
+  -LiteralPath .\tokens.visual-source.json).Hash
+if ($actual -ne $expected) {
+  throw "tokens.visual-source.json hash mismatch: $actual"
+}
+"tokens.visual-source.json: verified $actual"
 ```
+
+The quarantined binaries are intentionally off-tree. Their digests can only be
+rechecked against the selected owner-provided source folder; AF-006-A1 verified
+all 24 source entries before publication.
 
 The manifest records provenance, not licensing approval. Reuse beyond this
 owner-provided repository remains gated by AF-008.

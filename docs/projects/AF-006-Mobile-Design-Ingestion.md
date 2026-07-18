@@ -64,7 +64,7 @@ update its own row, the affected gap rows, and this document's changelog.
 
 | ID | Deliverable | Status | Dependency / acceptance gate | PR |
 |---|---|---|---|---|
-| AF-006-A1 | Safe intake index, source hashes, final-pass audit, gap register, code map, pickup plan | **IN REVIEW** | Docs/assets only; no raw private binaries or prototype contracts enter Git | [Forgejo #4](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/4) |
+| AF-006-A1 | Safe intake index, source hashes, final-pass audit, gap register, code map, pickup plan | **IN REVIEW** | Docs/assets only; no raw private binaries or prototype contracts enter Git | Forgejo #4 (owner instance) |
 | AF-006-A2 | Canonical sanitized visual package: portrait exports, real Add Agent/pairing states, provenance/notices, MIME-correct assets, checksum manifest | **BLOCKED** | AF-008 license/provenance decision; private-data redaction; regenerated distinct captures | — |
 | AF-006-B | Semantic Flutter tokens and reusable accessible primitives | **BLOCKED** | G023 theme decision plus G008/G015/G016 acceptance values; no failing source color imported verbatim | — |
 | AF-006-C | Four-tab app shell plus Home state-complete visual implementation | **BLOCKED** | AF-006-B; router/deep-link regression tests; agent carousel waits for AF-005 | — |
@@ -107,6 +107,29 @@ that the corresponding surface is safe or implementation-ready.
 | AF6-G025 | P2 | Infinite pulse/blink and toggle motion have no reduced-motion behavior; haptics are unspecified | Tie motion to real state, provide reduced/no-motion variants, avoid invented activity, and define optional platform haptics | AF-006-B,G | **OPEN** |
 | AF6-G026 | P2 | No canonical portrait/golden/semantics matrix or integration-test suite exists | Add state-complete portrait references, deterministic fixtures, golden baselines, semantics tests and device CUJs for every work row | AF-006-A2,G | **OPEN** |
 | AF6-G027 | P2 | Labels such as “Local Agents,” “Why,” relative-only times and ambiguous review chips can mislead | Use “Agent endpoints,” “Rationale summary,” absolute accessible time, explicit destinations and action-specific safety copy | AF-006-C–F | **OPEN** |
+
+### Evidence behind `PARTIAL`
+
+| Gap | Existing shipped foundation | Still missing |
+|---|---|---|
+| AF6-G004 | `lib/core/forgejo/forgejo_providers.dart::PrKey` scopes providers by owner/repo/number and formal review rechecks `headSha`; `lib/core/agents/agent_models.dart::AgentEntry.id` is a local UUID | Stable Forgejo instance, endpoint/host and persisted full-PR identities across every model/action |
+| AF6-G007 | `lib/core/mcp/mcp_client.dart::sendFeedback` keeps `clientMessageId`, sends an idempotency key, rejects ambiguous retries and requires `deliveryId`; `lib/core/mcp/mcp_models.dart::FeedbackResult` exposes both IDs | Durable lifecycle persistence/subscription, Forgejo-versus-agent reconciliation, per-leg partial failure and correlated replies |
+| AF6-G012 | `lib/core/agents/agent_models.dart::AgentWorkItem` requires active state plus a fresh `updatedAt`; `agent_providers.dart::agentWorkProvider` expires cached claims; `agent_work_client.dart` keeps unavailable distinct from idle | Stable endpoint health/capabilities, absolute heartbeat provenance and complete per-endpoint UI states |
+
+### AF-006-B contrast correction inputs
+
+Ratios use WCAG 2.1 sRGB relative luminance. Opacity-based text colors are
+first composited over `color.background.card` (`#1C1C1E`). These source values
+are measurements, not approved replacement tokens.
+
+| Source token / pair | Ratio | AA result for normal text | Required AF-006-B disposition |
+|---|---:|---|---|
+| `color.text.tertiary` on card | 3.93:1 | Fail | Raise to ≥4.5:1; default small metadata to the secondary semantic token |
+| `color.text.quaternary` on card | 3.40:1 | Fail | Do not use for readable 11–12sp copy |
+| `color.text.primary` on `color.humanBubble` | 3.65:1 | Fail | Darken the bubble (audit candidate `#0070DF`) or change foreground |
+| `color.text.primary` on `color.accent.greenFill` | 4.40:1 | Fail | Darken fill (audit candidate about `#21833A`) before normal white text |
+| White initials on `agents.Claude/Codex/Grok/Gemini` | 2.65 / 2.17 / 2.61 / 3.27:1 | Fail | Use computed dark/light foreground from `color_contrast.dart`; never hard-code white |
+| White initials on `agents.custom` | 5.06:1 | Pass | Still use computed foreground so custom colors remain safe |
 
 ## Screen-to-Flutter pickup map
 
@@ -209,6 +232,11 @@ AF-006 can move to **DONE** only when:
 
 ## Changelog
 
+- **2026-07-18 — Forgejo #4 review addressed:** Removed new private-host PR
+  URLs, made the three `PARTIAL` statuses traceable to shipped symbols, added
+  operational AF-006-B contrast inputs, and changed the manifest recipe from a
+  hash listing to an assertion against the recorded digest. The PR description
+  now reports all eight ledger rows.
 - **2026-07-18 — AF-006-A1 IN REVIEW:** Selected the owner's exact Final
   handoff; inventoried all 24 files; audited all 14 images and prototype/code
   artifacts; tracked the disclosure-safe visual tokens plus exact source
@@ -220,5 +248,5 @@ AF-006 can move to **DONE** only when:
   relative links, JSON parsing, all 24 source hashes, binary quarantine,
   denylist scan and `git diff --check` passed; formatting changed 0/39 files;
   Flutter analysis was clean; all 46 tests passed at 573/1595 lines (35.92%,
-  floor 29%); debug APK and release Web builds succeeded. Published as the
-  ready-for-review [Forgejo PR #4](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/4).
+  floor 29%); debug APK and release Web builds succeeded. Published as
+  ready-for-review Forgejo #4 on the owner instance.
