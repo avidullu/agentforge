@@ -81,7 +81,7 @@ update its owning tracker row and changelog.
 | AF-003 | Changes/diff viewer, checks, conflicts, mergeability, reviewed-head guard | **PLANNED** | Forgejo API/UI design | — |
 | AF-004 | Authenticated HTTPS agent protocol and compliant MCP adapter | **PLANNED** | Threat model, endpoint identity/pairing, stable MCP 2025-11-25 | — |
 | AF-005 | Typed agent health, heartbeat TTL, partial failure, durable provenance | **PARTIAL** | AF-004 identity model | — |
-| AF-006 | Mobile design ingestion and WCAG 2.1 AA implementation (multi-PR) | **IN PROGRESS — INTAKE** | AF-003/004/005 contracts; AF-008 asset provenance | [AF-006 tracker](projects/AF-006-Mobile-Design-Ingestion.md) |
+| AF-006 | Mobile design ingestion and WCAG 2.1 AA implementation (multi-PR) | **IN PROGRESS — INTAKE SHIPPED** | AF-003/004/005 contracts; AF-008 asset provenance | [AF-006 tracker](projects/AF-006-Mobile-Design-Ingestion.md) |
 | AF-007 | CI/release hardening: format, coverage floor, Android build, pinned toolchain | **SHIPPED IN AF-001** | Forgejo run 12 green | [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1) |
 | AF-008 | Public-code/private-runtime licensing and data-boundary decision | **DECISION NEEDED** | Owner selects license/distribution model | — |
 
@@ -145,6 +145,13 @@ and the following statements are factually true:
 
 ## Changelog
 
+- **2026-07-18 — AF-006-A1 SHIPPED:** Forgejo #4 merged reviewed head
+  `c65f8e46c6b8d07860222081b7ad4ec7d7842988` as
+  [`8b10705f`](https://github.com/avidullu/agentforge/commit/8b10705f3e5252441a8b7beb3e991e3699a270d5)
+  after exact-head CI passed formatting, fatal-info analysis, all 46 tests,
+  35.92% line coverage (29% floor), Android debug APK and release Web build.
+  Raw screenshots/prototype artifacts remain quarantined; AF-006 stays in
+  progress because A2–G are blocked on their recorded gates.
 - **2026-07-18 — AF-006-A1 READY FOR REVIEW:** Selected and audited the exact
   Final mobile handoff. Added a safe hash/provenance intake, quarantined raw
   private/broken/unlicensed binaries and prototype contracts, corrected the
