@@ -11,8 +11,8 @@ checked-in copy is a repository-visible checkpoint.
 
 ## You are here
 
-- **Hot path: AF-012 / PII-redaction S4** — synthetic test/tool fixtures.
-  Branch `af-012-synthetic-test-fixtures` (from `origin/main` @ `b0156cc`).
+- **Hot path: Forgejo PR #14 (AF-012 / PII-redaction S4)** — synthetic
+  test/tool fixtures. Branch `af-012-synthetic-test-fixtures`, tip `04c0afe`.
 - AF-011 / PR #12 **SHIPPED** as `b0156cc` (tip `f2ebdc2`); CI green + LGTM 278.
 - AF-010 / PR #10 **SHIPPED** as `0a42295`.
 - AF-009 / PR #7 **SHIPPED** as `93e06d7`.
