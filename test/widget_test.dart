@@ -7,7 +7,9 @@ import 'package:agentforge/core/settings/settings_providers.dart';
 import 'package:agentforge/router.dart';
 
 void main() {
-  testWidgets('App starts on home without crashing', (WidgetTester tester) async {
+  testWidgets('App starts on home without crashing', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -26,7 +28,9 @@ void main() {
     expect(find.text('Connect Forgejo'), findsOneWidget);
   });
 
-  testWidgets('Cold-start initialLocation opens PR detail', (WidgetTester tester) async {
+  testWidgets('Cold-start initialLocation opens PR detail', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -49,9 +53,6 @@ void main() {
       find.textContaining('Khelsutra/badminton-highlight-indexer #611'),
       findsWidgets,
     );
-    expect(
-      find.textContaining('Connect Forgejo in Settings'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Connect Forgejo in Settings'), findsOneWidget);
   });
 }

@@ -6,13 +6,11 @@ import '../../core/agents/agent_models.dart';
 import '../../core/forgejo/forgejo_providers.dart';
 import '../../core/mcp/mcp_models.dart';
 import '../../core/mcp/mcp_providers.dart';
+import '../../core/theme/color_contrast.dart';
 
-/// Milestone 4: live agent plan / reasoning / feedback for this PR.
+/// Prototype agent plan, rationale summary, and feedback for this PR.
 class AgentContextPanel extends ConsumerWidget {
-  const AgentContextPanel({
-    super.key,
-    required this.prKey,
-  });
+  const AgentContextPanel({super.key, required this.prKey});
 
   final PrKey prKey;
 
@@ -27,8 +25,9 @@ class AgentContextPanel extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Text(
-            'No agents registered with an MCP URL. '
-            'Add one under Agents to see plan/reasoning and send feedback.',
+            'No side-car-enabled agent currently claims this PR. '
+            'Refresh agent work or link an agent explicitly before sharing '
+            'PR context or sending feedback.',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
             ),
@@ -44,13 +43,21 @@ class AgentContextPanel extends ConsumerWidget {
       ),
       error: (e, _) => Text('$e'),
       data: (contexts) {
-        final byId = {for (final c in contexts) c.agentId: c};
+        final agentsById = {for (final agent in agents) agent.id: agent};
+        final byId = {
+          for (final c in contexts)
+            if (agentsById[c.agentId] case final agent?
+                when agentContextMatchesEndpoint(agent, c))
+              c.agentId: c,
+        };
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             for (final agent in agents) ...[
               _AgentContextCard(
-                contextData: byId[agent.id] ??
+                key: ValueKey((agent.id, agent.mcpBaseUrl.trim())),
+                contextData:
+                    byId[agent.id] ??
                     AgentContext.unavailable(
                       agentId: agent.id,
                       agentName: agent.name,
@@ -70,6 +77,7 @@ class AgentContextPanel extends ConsumerWidget {
 
 class _AgentContextCard extends ConsumerStatefulWidget {
   const _AgentContextCard({
+    super.key,
     required this.contextData,
     required this.agent,
     required this.prKey,
@@ -86,6 +94,8 @@ class _AgentContextCard extends ConsumerStatefulWidget {
 class _AgentContextCardState extends ConsumerState<_AgentContextCard> {
   final _feedbackCtrl = TextEditingController();
   var _sending = false;
+  String? _pendingFeedbackText;
+  String? _pendingClientMessageId;
 
   @override
   void dispose() {
@@ -97,16 +107,36 @@ class _AgentContextCardState extends ConsumerState<_AgentContextCard> {
     final text = _feedbackCtrl.text.trim();
     if (text.isEmpty) return;
     setState(() => _sending = true);
-    final result = await ref.read(mcpActionsProvider).sendFeedback(
+    final retryMessageId = _pendingFeedbackText == text
+        ? _pendingClientMessageId ?? ''
+        : '';
+    final result = await ref
+        .read(mcpActionsProvider)
+        .sendFeedback(
           agent: widget.agent,
           key: widget.prKey,
           message: text,
+          clientMessageId: retryMessageId,
         );
     if (!mounted) return;
-    setState(() => _sending = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(result.message)),
-    );
+    setState(() {
+      _sending = false;
+      if (result.ok) {
+        _pendingFeedbackText = null;
+        _pendingClientMessageId = null;
+      } else {
+        _pendingFeedbackText = text;
+        _pendingClientMessageId = result.clientMessageId;
+      }
+    });
+    final receiptSuffix = result.ok && result.deliveryId.isNotEmpty
+        ? ' Receipt: ${result.deliveryId}'
+        : !result.ok && result.clientMessageId.isNotEmpty
+        ? ' Message ID: ${result.clientMessageId}'
+        : '';
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('${result.message}$receiptSuffix')));
     if (result.ok) _feedbackCtrl.clear();
   }
 
@@ -115,6 +145,7 @@ class _AgentContextCardState extends ConsumerState<_AgentContextCard> {
     final theme = Theme.of(context);
     final c = widget.contextData;
     final updated = c.updatedAt;
+    final avatarColor = Color(widget.agent.colorArgb);
 
     return Card(
       child: Padding(
@@ -126,12 +157,15 @@ class _AgentContextCardState extends ConsumerState<_AgentContextCard> {
               children: [
                 CircleAvatar(
                   radius: 12,
-                  backgroundColor: Color(widget.agent.colorArgb),
+                  backgroundColor: avatarColor,
                   child: Text(
                     widget.agent.name.isNotEmpty
                         ? widget.agent.name[0].toUpperCase()
                         : '?',
-                    style: const TextStyle(fontSize: 12, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: foregroundFor(avatarColor),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -151,10 +185,7 @@ class _AgentContextCardState extends ConsumerState<_AgentContextCard> {
             ),
             if (c.error != null) ...[
               const SizedBox(height: 8),
-              Text(
-                c.error!,
-                style: TextStyle(color: theme.colorScheme.error),
-              ),
+              Text(c.error!, style: TextStyle(color: theme.colorScheme.error)),
             ],
             if (c.plan.trim().isNotEmpty) ...[
               const SizedBox(height: 12),
@@ -162,12 +193,12 @@ class _AgentContextCardState extends ConsumerState<_AgentContextCard> {
               const SizedBox(height: 4),
               SelectableText(c.plan, style: theme.textTheme.bodyMedium),
             ],
-            if (c.reasoning.trim().isNotEmpty) ...[
+            if (c.rationaleSummary.trim().isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text('Reasoning', style: theme.textTheme.labelLarge),
+              Text('Rationale summary', style: theme.textTheme.labelLarge),
               const SizedBox(height: 4),
               SelectableText(
-                c.reasoning,
+                c.rationaleSummary,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
                 ),

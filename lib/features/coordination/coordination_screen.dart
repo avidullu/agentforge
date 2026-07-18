@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/agents/agent_providers.dart';
 import '../../core/mcp/mcp_providers.dart';
+import '../../core/theme/color_contrast.dart';
 
 /// Milestone 5: multi-machine coordination — work grouped by repository.
 class CoordinationScreen extends ConsumerWidget {
@@ -14,6 +15,7 @@ class CoordinationScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final byRepo = ref.watch(coordinationByRepoProvider);
     final agentsAsync = ref.watch(agentsProvider);
+    final workAsync = ref.watch(agentWorkMapProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -47,7 +49,7 @@ class CoordinationScreen extends ConsumerWidget {
                   Text('No agents yet', style: theme.textTheme.headlineSmall),
                   const SizedBox(height: 8),
                   const Text(
-                    'Register local agents and point their MCP base URL at a '
+                    'Register agent endpoints and point their side-car URL at a '
                     'side-car that exposes /active-work. Then this view groups '
                     'active PRs by repository across machines.',
                   ),
@@ -61,6 +63,40 @@ class CoordinationScreen extends ConsumerWidget {
             );
           }
 
+          if (workAsync.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (workAsync.hasError) {
+            return Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Could not load endpoint activity',
+                    style: theme.textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'The endpoint registry is available, but activity state '
+                    'is not. Refresh to retry; this is not an idle signal.',
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: () => ref.invalidate(agentWorkMapProvider),
+                    child: const Text('Retry activity'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final work = workAsync.valueOrNull ?? const {};
+          final unavailable = agents
+              .where((agent) => work[agent.id]?.isUnavailable == true)
+              .toList();
+
           if (byRepo.isEmpty) {
             return Padding(
               padding: const EdgeInsets.all(24),
@@ -73,8 +109,12 @@ class CoordinationScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'None reported active work. Ensure each agent MCP URL '
-                    'serves GET /active-work (see docs/AGENT_MCP_CONTRACT.md).',
+                    unavailable.isEmpty
+                        ? 'None reported fresh active work. Ensure each endpoint '
+                              'URL uses HTTPS (or debug-only loopback HTTP) and '
+                              'serves GET /active-work with a current updated_at value.'
+                        : 'No verified fresh activity. ${unavailable.length} '
+                              'endpoint(s) are unavailable; this is not an idle signal.',
                     style: theme.textTheme.bodyLarge,
                   ),
                   const SizedBox(height: 16),
@@ -85,14 +125,21 @@ class CoordinationScreen extends ConsumerWidget {
                         backgroundColor: Color(a.colorArgb),
                         child: Text(
                           a.name.isNotEmpty ? a.name[0].toUpperCase() : '?',
-                          style: const TextStyle(color: Colors.white),
+                          style: TextStyle(
+                            color: foregroundFor(Color(a.colorArgb)),
+                          ),
                         ),
                       ),
                       title: Text(a.name),
                       subtitle: Text(
                         [
                           a.machine,
-                          if (a.mcpBaseUrl.isNotEmpty) a.mcpBaseUrl else 'no MCP URL',
+                          if (work[a.id]?.isUnavailable == true)
+                            work[a.id]!.error!
+                          else if (a.mcpBaseUrl.isNotEmpty)
+                            'no fresh active work reported'
+                          else
+                            'no side-car URL configured',
                         ].join(' · '),
                       ),
                     ),
@@ -116,6 +163,19 @@ class CoordinationScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
+              if (unavailable.isNotEmpty) ...[
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(
+                      '${unavailable.length} endpoint(s) unavailable. '
+                      'Results below are partial; refresh to retry.',
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
               for (final entry in byRepo.entries) ...[
                 Card(
                   child: Padding(
@@ -136,9 +196,11 @@ class CoordinationScreen extends ConsumerWidget {
                                 row.agent.name.isNotEmpty
                                     ? row.agent.name[0].toUpperCase()
                                     : '?',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.white,
+                                  color: foregroundFor(
+                                    Color(row.agent.colorArgb),
+                                  ),
                                 ),
                               ),
                             ),

@@ -1,101 +1,116 @@
-# Deep Linking Setup (Gmail → App)
+# Deep linking setup: Gmail → AgentForge
 
-**Goal of Milestone 0**: Click a Forgejo PR link inside Gmail and land directly inside AgentForge on the correct PR.
+**Milestone status:** code repaired; verified-link and physical-device gate open.
+
+The acceptance journey is: tap a trusted avis-pbook Forgejo PR URL in Gmail and
+land on that exact Forgejo instance/repository/PR in AgentForge.
 
 ## Supported URL shapes
 
-The Dart router + `deepLinkToLocation` accept:
-
 | Source | Example |
-|--------|---------|
-| HTTPS Forgejo (`pulls`) | `https://avis-pbook.tail651ec3.ts.net/Khelsutra/badminton-highlight-indexer/pulls/611` |
-| HTTPS Forgejo (`pull`) | `https://avis-pbook.tail651ec3.ts.net/owner/repo/pull/42` |
-| Custom scheme (debug) | `agentforge://pr/owner/repo/42` |
-| Custom scheme (path) | `agentforge://open/owner/repo/pulls/42` |
+|---|---|
+| Trusted HTTPS (`pulls`) | `https://avis-pbook.tail651ec3.ts.net/owner/repo/pulls/42` |
+| Trusted HTTPS (`pull`) | `https://avis-pbook.tail651ec3.ts.net/owner/repo/pull/42` |
+| Custom scheme | `agentforge://pr/owner/repo/42` |
+| Custom path | `agentforge://open/owner/repo/pulls/42` |
 
-The host is ignored for routing; only the path (or custom-scheme segments) matters.
+HTTPS URLs from any other authority are rejected. They must never be resolved
+against the token/base URL of the configured private Forgejo instance.
 
-## What is wired in the repo
+## Ownership model
 
-| Layer | Status |
-|-------|--------|
-| `go_router` PR routes | Yes — `/:owner/:repo/pulls/:number` and `.../pull/:number` |
-| `app_links` cold start | Yes — `main.dart` sets `initialLocationProvider` |
-| `app_links` warm start | Yes — `DeepLinkListener` |
-| Android intent-filters | Yes — HTTPS App Links + `agentforge://` |
-| iOS custom scheme | Yes — `CFBundleURLTypes` → `agentforge` |
-| iOS Associated Domains | Yes — `Runner.entitlements` → `applinks:avis-pbook.tail651ec3.ts.net` |
-| Domain verification files | Templates in `docs/well-known/` — **must be hosted** for verified App/Universal Links |
+AgentForge uses `app_links` as the sole OS-link owner:
 
-## Android
+- Android sets `flutter_deeplinking_enabled=false`.
+- iOS sets `FlutterDeepLinkingEnabled=false`.
+- GoRouter sets `overridePlatformDefaultLocation=true`.
+- One early `AppLinks` instance serves cold- and warm-start delivery.
+- `app_links` 7.2.1+ is required for the Flutter 3.44/UIScene lifecycle used by
+  this project.
 
-Intent filters live in `android/app/src/main/AndroidManifest.xml`:
+This follows Flutter's third-party deep-link migration guidance:
+[deep-link flag change](https://docs.flutter.dev/release/breaking-changes/deep-links-flag-change).
 
-- **App Links** (`autoVerify=true`) for `https://avis-pbook.tail651ec3.ts.net/.../pulls|pull/...`
-- **Custom scheme** `agentforge://pr/...` and `agentforge://open/...` for adb testing without verification
+## Android App Links
 
-### Host Digital Asset Links
+The manifest registers only the avis-pbook host and explicitly disables
+cleartext application traffic and Android backup.
 
-Serve at:
+Serve the completed Digital Asset Links file at:
 
 ```text
 https://avis-pbook.tail651ec3.ts.net/.well-known/assetlinks.json
 ```
 
-Template: [`docs/well-known/assetlinks.json`](./well-known/assetlinks.json)
+Template: [`docs/well-known/assetlinks.json`](well-known/assetlinks.json)
 
-1. Build a debug APK once, then get the cert fingerprint:
+Before release:
 
-   ```bash
-   keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
-   ```
-
-2. Put the SHA-256 fingerprint into `assetlinks.json` and host it on the Forgejo host (reverse proxy / static file — Forgejo itself may need a front-door route for `/.well-known/`).
-
-3. Verify:
+1. Establish a stable release keystore; do not use the debug key for release.
+2. Replace the placeholder SHA-256 certificate fingerprint.
+3. Serve the file as JSON without redirects or authentication.
+4. Verify the HTTPS response and then run:
 
    ```bash
    adb shell pm get-app-links com.avidullu.agentforge
+   adb shell am start -W -a android.intent.action.VIEW \
+     -d "https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1"
    ```
 
-### Quick test without assetlinks (custom scheme)
+Custom-scheme development test:
 
 ```bash
-adb shell am start -a android.intent.action.VIEW \
-  -d "agentforge://pr/Khelsutra/badminton-highlight-indexer/611"
+adb shell am start -W -a android.intent.action.VIEW \
+  -d "agentforge://pr/avidullu/agentforge/1"
 ```
 
-Or with a full HTTPS URL (works after App Links verification, or via disambiguation dialog):
+## iOS Universal Links
 
-```bash
-adb shell am start -a android.intent.action.VIEW \
-  -d "https://avis-pbook.tail651ec3.ts.net/Khelsutra/badminton-highlight-indexer/pulls/611"
+Template: [`docs/well-known/apple-app-site-association`](well-known/apple-app-site-association)
+
+Serve it at:
+
+```text
+https://avis-pbook.tail651ec3.ts.net/.well-known/apple-app-site-association
 ```
 
-## iOS
+It must contain the real Apple Team ID, have `Content-Type: application/json`,
+and be available without a filename extension, redirect, or authentication.
 
-1. **Custom scheme** (works in Simulator immediately): open  
-   `agentforge://pr/Khelsutra/badminton-highlight-indexer/611`
-2. **Universal Links** need:
-   - Associated Domains entitlement (already in `ios/Runner/Runner.entitlements`)
-   - Apple Team ID in AASA (`docs/well-known/apple-app-site-association`)
-   - File hosted at  
-     `https://avis-pbook.tail651ec3.ts.net/.well-known/apple-app-site-association`  
-     (no `.json` extension; `Content-Type: application/json`)
-   - App signed with that Team ID
+iOS 14+ normally retrieves association metadata through Apple's public CDN.
+Because avis-pbook is tailnet-only, development-signed builds use the associated
+domain `applinks:avis-pbook.tail651ec3.ts.net?mode=developer`. This requires
+developer mode on the device and is not a distribution strategy. A distributed
+app needs a publicly reachable metadata host or an appropriate managed-domain
+deployment decision. See [Apple Associated Domains](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.associated-domains).
 
-Replace `TEAMID` in the AASA template with your Apple Developer Team ID.
+Simulator/custom-scheme test:
 
-## Gmail CUJ (real device)
+```text
+agentforge://pr/avidullu/agentforge/1
+```
 
-1. `flutter run` on a real phone (same Tailscale network as avis-pbook if you will later load PR APIs).
-2. Email yourself a real PR link from avis-pbook.
-3. Tap the link → AgentForge opens → PR Detail shows correct owner / repo / number.
-4. If HTTPS does not open the app yet (verification pending), use the custom scheme or long-press → Open with AgentForge.
+## Current operational blockers
 
-Once the HTTPS path works end-to-end from Gmail, Milestone 0 is complete.
+At the 2026-07-18 audit:
 
-## Package identity
+- Android 16 AVD install/launch and warm custom-scheme navigation to
+  `avidullu/agentforge #1` passed.
+- Both live `/.well-known` URLs returned HTTP 404.
+- Both repository templates contained signing placeholders.
+- Android release signing still used development configuration.
+- No Gmail-to-app HTTPS CUJ had been recorded on Android or iOS.
 
-- Application ID / bundle ID: `com.avidullu.agentforge`
-- Display name: `AgentForge`
+Milestone 0 is complete only after the real Gmail HTTPS journey passes on both
+target platforms with the correct authority and PR displayed.
+
+## Required tests
+
+- Pure parser: trusted host accepted; other hosts and malformed paths rejected.
+- Android cold/warm App Link and custom scheme.
+- iOS cold/warm Universal Link and custom scheme under UIScene.
+- Cold-link navigation retains visible Home, Settings, and Forgejo fallback.
+- Warm-link navigation protects unsent drafts.
+- Link authority must match the configured Forgejo instance identity.
+
+Package identity: `com.avidullu.agentforge`.

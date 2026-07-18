@@ -13,12 +13,12 @@ final forgejoClientProvider = FutureProvider<ForgejoClient?>((ref) async {
 /// Open PRs from the configured Forgejo instance.
 final openPullRequestsProvider =
     FutureProvider.autoDispose<List<PullRequestSummary>>((ref) async {
-  final client = await ref.watch(forgejoClientProvider.future);
-  if (client == null) {
-    throw const _NotConfigured();
-  }
-  return client.listOpenPullRequests();
-});
+      final client = await ref.watch(forgejoClientProvider.future);
+      if (client == null) {
+        throw const _NotConfigured();
+      }
+      return client.listOpenPullRequests();
+    });
 
 class PrKey {
   const PrKey(this.owner, this.repo, this.number);
@@ -38,38 +38,38 @@ class PrKey {
   int get hashCode => Object.hash(owner, repo, number);
 }
 
-final pullRequestDetailProvider =
-    FutureProvider.autoDispose.family<PullRequestDetail?, PrKey>((ref, key) async {
-  final client = await ref.watch(forgejoClientProvider.future);
-  if (client == null) return null;
-  return client.getPullRequest(
-    owner: key.owner,
-    repo: key.repo,
-    number: key.number,
-  );
-});
+final pullRequestDetailProvider = FutureProvider.autoDispose
+    .family<PullRequestDetail?, PrKey>((ref, key) async {
+      final client = await ref.watch(forgejoClientProvider.future);
+      if (client == null) return null;
+      return client.getPullRequest(
+        owner: key.owner,
+        repo: key.repo,
+        number: key.number,
+      );
+    });
 
-final issueCommentsProvider =
-    FutureProvider.autoDispose.family<List<IssueComment>, PrKey>((ref, key) async {
-  final client = await ref.watch(forgejoClientProvider.future);
-  if (client == null) return const [];
-  return client.listIssueComments(
-    owner: key.owner,
-    repo: key.repo,
-    number: key.number,
-  );
-});
+final issueCommentsProvider = FutureProvider.autoDispose
+    .family<List<IssueComment>, PrKey>((ref, key) async {
+      final client = await ref.watch(forgejoClientProvider.future);
+      if (client == null) return const [];
+      return client.listIssueComments(
+        owner: key.owner,
+        repo: key.repo,
+        number: key.number,
+      );
+    });
 
-final pullReviewsProvider =
-    FutureProvider.autoDispose.family<List<PullReview>, PrKey>((ref, key) async {
-  final client = await ref.watch(forgejoClientProvider.future);
-  if (client == null) return const [];
-  return client.listPullReviews(
-    owner: key.owner,
-    repo: key.repo,
-    number: key.number,
-  );
-});
+final pullReviewsProvider = FutureProvider.autoDispose
+    .family<List<PullReview>, PrKey>((ref, key) async {
+      final client = await ref.watch(forgejoClientProvider.future);
+      if (client == null) return const [];
+      return client.listPullReviews(
+        owner: key.owner,
+        repo: key.repo,
+        number: key.number,
+      );
+    });
 
 final prActionsProvider = Provider<PrActions>((ref) => PrActions(ref));
 
@@ -100,16 +100,37 @@ class PrActions {
   Future<void> submitReview(
     PrKey key, {
     required ReviewEvent event,
+    required String expectedHeadSha,
     String body = '',
   }) async {
+    if (event == ReviewEvent.requestChanges && body.trim().isEmpty) {
+      throw ForgejoException('Request changes requires a review comment.');
+    }
     final client = await _requireClient();
+    if (expectedHeadSha.isEmpty) {
+      throw ForgejoException(
+        'Cannot submit a formal review without a verified PR head commit.',
+      );
+    }
+    final latest = await client.getPullRequest(
+      owner: key.owner,
+      repo: key.repo,
+      number: key.number,
+    );
+    if (latest.headSha != expectedHeadSha) {
+      throw ForgejoException(
+        'The PR head changed. Refresh and review the new commit before submitting.',
+      );
+    }
     await client.createPullReview(
       owner: key.owner,
       repo: key.repo,
       number: key.number,
       event: event,
       body: body,
+      commitId: expectedHeadSha,
     );
+    _ref.invalidate(pullRequestDetailProvider(key));
     _ref.invalidate(pullReviewsProvider(key));
     _ref.invalidate(issueCommentsProvider(key));
   }
@@ -119,5 +140,6 @@ class _NotConfigured implements Exception {
   const _NotConfigured();
 
   @override
-  String toString() => 'Forgejo is not configured. Open Settings to add a token.';
+  String toString() =>
+      'Forgejo is not configured. Open Settings to add a token.';
 }

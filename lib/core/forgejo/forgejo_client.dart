@@ -5,16 +5,24 @@ import 'models.dart';
 
 /// Thin Forgejo (Gitea-compatible) API client for the endpoints AgentForge needs.
 class ForgejoClient {
-  ForgejoClient({
-    required AppSettings settings,
-    Dio? dio,
-  }) : _dio = dio ??
-            Dio(
-              BaseOptions(
-                connectTimeout: const Duration(seconds: 15),
-                receiveTimeout: const Duration(seconds: 30),
-              ),
-            ) {
+  ForgejoClient({required AppSettings settings, Dio? dio})
+    : _dio =
+          dio ??
+          Dio(
+            BaseOptions(
+              connectTimeout: const Duration(seconds: 15),
+              receiveTimeout: const Duration(seconds: 30),
+            ),
+          ) {
+    _dio.options
+      ..followRedirects = false
+      ..maxRedirects = 0;
+    final validationError = AppSettings.baseUrlValidationError(
+      settings.baseUrl,
+    );
+    if (validationError != null) {
+      throw ForgejoException(validationError);
+    }
     _dio.options.baseUrl = AppSettings.normalizeBaseUrl(settings.baseUrl);
     _dio.options.headers['Accept'] = 'application/json';
     final token = settings.token.trim();
@@ -28,9 +36,8 @@ class ForgejoClient {
   /// Validates credentials; returns the authenticated login.
   Future<String> whoAmI() async {
     final res = await _dio.get<Map<String, dynamic>>('/api/v1/user');
-    final login = res.data?['login'] as String? ??
-        res.data?['username'] as String? ??
-        '';
+    final login =
+        res.data?['login'] as String? ?? res.data?['username'] as String? ?? '';
     if (login.isEmpty) {
       throw ForgejoException('Unexpected /api/v1/user response');
     }
@@ -72,11 +79,7 @@ class ForgejoClient {
     if (data == null) {
       throw ForgejoException('Empty PR response for $owner/$repo#$number');
     }
-    return PullRequestDetail.fromPullJson(
-      data,
-      owner: owner,
-      repo: repo,
-    );
+    return PullRequestDetail.fromPullJson(data, owner: owner, repo: repo);
   }
 
   Future<List<IssueComment>> listIssueComments({
@@ -131,12 +134,17 @@ class ForgejoClient {
     required int number,
     required ReviewEvent event,
     String body = '',
+    String commitId = '',
   }) async {
+    if (event == ReviewEvent.requestChanges && body.trim().isEmpty) {
+      throw ForgejoException('Request changes requires a review comment.');
+    }
     final res = await _dio.post<Map<String, dynamic>>(
       '/api/v1/repos/$owner/$repo/pulls/$number/reviews',
       data: {
         'body': body,
         'event': event.apiValue,
+        if (commitId.isNotEmpty) 'commit_id': commitId,
       },
     );
     final data = res.data;

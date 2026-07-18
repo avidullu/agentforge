@@ -99,6 +99,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _disconnect() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Disconnect Forgejo?'),
+        content: const Text(
+          'This removes the saved personal access token from this app.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Disconnect'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await ref.read(settingsControllerProvider).disconnect();
+    if (!mounted) return;
+    _tokenController.clear();
+    setState(() {
+      _statusMessage = 'Disconnected and removed the saved token.';
+      _statusIsError = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -110,14 +140,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            Text(
-              'Forgejo Connection',
-              style: theme.textTheme.titleLarge,
-            ),
+            Text('Forgejo Connection', style: theme.textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
               'Reachable over Tailscale. Create a personal access token on '
-              'your instance with repo read (and write later for reviews).',
+              'your instance with the repository permissions required for '
+              'the review actions you enable.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
@@ -135,11 +163,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               validator: (v) {
                 final t = v?.trim() ?? '';
                 if (t.isEmpty) return 'Required';
-                final uri = Uri.tryParse(t);
-                if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
-                  return 'Enter a valid URL';
-                }
-                return null;
+                return AppSettings.baseUrlValidationError(t);
               },
             ),
             const SizedBox(height: 16),
@@ -152,6 +176,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   icon: Icon(
                     _obscureToken ? Icons.visibility : Icons.visibility_off,
                   ),
+                  tooltip: _obscureToken ? 'Show token' : 'Hide token',
                   onPressed: () =>
                       setState(() => _obscureToken = !_obscureToken),
                 ),
@@ -165,7 +190,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               },
             ),
             const SizedBox(height: 24),
-            Row(
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
               children: [
                 FilledButton(
                   onPressed: _saving ? null : _save,
@@ -177,7 +204,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         )
                       : const Text('Save'),
                 ),
-                const SizedBox(width: 12),
                 OutlinedButton(
                   onPressed: _testing ? null : _testConnection,
                   child: _testing
@@ -187,6 +213,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Text('Test connection'),
+                ),
+                TextButton.icon(
+                  onPressed: _saving || _testing ? null : _disconnect,
+                  icon: const Icon(Icons.link_off),
+                  label: const Text('Disconnect'),
                 ),
               ],
             ),
@@ -204,8 +235,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 40),
             ListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Local Agents'),
-              subtitle: const Text('Register machines and optional MCP URLs'),
+              title: const Text('Agent endpoints'),
+              subtitle: const Text('Register trusted hosts and side-car URLs'),
               leading: Icon(
                 Icons.smart_toy_outlined,
                 color: theme.colorScheme.primary,

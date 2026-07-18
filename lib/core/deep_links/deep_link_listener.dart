@@ -7,6 +7,9 @@ import 'package:go_router/go_router.dart';
 
 import 'deep_link.dart';
 
+/// One early app_links instance owns both cold- and warm-start delivery.
+final agentForgeAppLinks = AppLinks();
+
 /// Listens for warm-start deep links and navigates via [router].
 ///
 /// Cold-start is handled by passing [initialLocation] into [GoRouter]
@@ -31,7 +34,7 @@ class _DeepLinkListenerState extends ConsumerState<DeepLinkListener> {
   @override
   void initState() {
     super.initState();
-    _sub = AppLinks().uriLinkStream.listen(_onUri, onError: (_) {});
+    _sub = agentForgeAppLinks.uriLinkStream.listen(_onUri, onError: (_) {});
   }
 
   void _onUri(Uri uri) {

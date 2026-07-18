@@ -19,6 +19,7 @@ class _Adapter implements HttpClientAdapter {
     Stream<List<int>>? requestStream,
     Future<void>? cancelFuture,
   ) async {
+    expect(options.followRedirects, isFalse);
     return handler(options);
   }
 }
@@ -93,6 +94,8 @@ void main() {
           "body": "Hello body",
           "html_url": "https://example/o/r/pulls/9",
           "draft": false,
+          "head": {"sha": "0123456789abcdef", "ref": "feature/safe-review"},
+          "base": {"ref": "main"},
           "updated_at": "2026-07-18T00:00:00Z",
           "user": {"login": "avi"}
         }
@@ -105,10 +108,17 @@ void main() {
     });
 
     final client = ForgejoClient(settings: settings, dio: dio);
-    final detail = await client.getPullRequest(owner: 'o', repo: 'r', number: 9);
+    final detail = await client.getPullRequest(
+      owner: 'o',
+      repo: 'r',
+      number: 9,
+    );
     expect(detail.summary.title, 'Detail');
     expect(detail.body, 'Hello body');
     expect(detail.summary.routePath, '/o/r/pulls/9');
+    expect(detail.headSha, '0123456789abcdef');
+    expect(detail.headRef, 'feature/safe-review');
+    expect(detail.baseRef, 'main');
   });
 
   test('createIssueComment posts body', () async {
@@ -140,6 +150,11 @@ void main() {
     dio.httpClientAdapter = _Adapter((options) {
       expect(options.method, 'POST');
       expect(options.path, '/api/v1/repos/o/r/pulls/3/reviews');
+      expect(options.data, {
+        'body': 'LGTM',
+        'event': 'APPROVED',
+        'commit_id': '0123456789abcdef',
+      });
       return ResponseBody.fromString(
         '{"id":11,"state":"APPROVED","body":"LGTM","user":{"login":"avi"}}',
         200,
@@ -155,6 +170,7 @@ void main() {
       number: 3,
       event: ReviewEvent.approve,
       body: 'LGTM',
+      commitId: '0123456789abcdef',
     );
     expect(r.state, 'APPROVED');
   });

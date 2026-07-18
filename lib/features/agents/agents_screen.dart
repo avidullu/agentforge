@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/agents/agent_models.dart';
 import '../../core/agents/agent_providers.dart';
+import '../../core/mcp/mcp_client.dart';
+import '../../core/theme/color_contrast.dart';
 
 class AgentsScreen extends ConsumerStatefulWidget {
   const AgentsScreen({super.key});
@@ -50,9 +52,19 @@ class _AgentsScreenState extends ConsumerState<AgentsScreen> {
                 TextFormField(
                   controller: mcpCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'MCP base URL (optional)',
+                    labelText: 'Agent side-car URL (optional)',
                     hintText: 'http://127.0.0.1:8765',
                   ),
+                  validator: (value) {
+                    final raw = value?.trim() ?? '';
+                    if (raw.isEmpty) return null;
+                    try {
+                      normalizeAgentEndpointUrl(raw);
+                      return null;
+                    } on FormatException catch (e) {
+                      return e.message;
+                    }
+                  },
                 ),
               ],
             ),
@@ -83,16 +95,10 @@ class _AgentsScreenState extends ConsumerState<AgentsScreen> {
 
     try {
       final entry = existing == null
-          ? ref.read(agentControllerProvider).draft(
-                name: name,
-                machine: machine,
-                mcpBaseUrl: mcp,
-              )
-          : existing.copyWith(
-              name: name,
-              machine: machine,
-              mcpBaseUrl: mcp,
-            );
+          ? ref
+                .read(agentControllerProvider)
+                .draft(name: name, machine: machine, mcpBaseUrl: mcp)
+          : existing.copyWith(name: name, machine: machine, mcpBaseUrl: mcp);
       await ref.read(agentControllerProvider).upsert(entry);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -104,9 +110,9 @@ class _AgentsScreenState extends ConsumerState<AgentsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not save agent: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not save agent: $e')));
     } finally {
       nameCtrl.dispose();
       machineCtrl.dispose();
@@ -136,14 +142,14 @@ class _AgentsScreenState extends ConsumerState<AgentsScreen> {
     try {
       await ref.read(agentControllerProvider).remove(a.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Removed ${a.name}')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Removed ${a.name}')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not remove: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not remove: $e')));
     }
   }
 
@@ -203,8 +209,9 @@ class _AgentsScreenState extends ConsumerState<AgentsScreen> {
                   const SizedBox(height: 12),
                   const Text(
                     'Tap “Add agent” and fill Name + Machine (required). '
-                    'MCP base URL is optional — use http://127.0.0.1:8765 '
-                    'with the mock server for a local demo.',
+                    'The side-car URL is optional. Use '
+                    'http://127.0.0.1:8765 only for a same-device mock; '
+                    'remote endpoints must use HTTPS.',
                   ),
                 ],
               ),
@@ -217,13 +224,24 @@ class _AgentsScreenState extends ConsumerState<AgentsScreen> {
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, i) {
               final a = agents[i];
-              final items = work[a.id] ?? const <AgentWorkItem>[];
+              final cachedResult = work[a.id];
+              final result =
+                  cachedResult != null &&
+                      agentWorkMatchesEndpoint(a, cachedResult)
+                  ? cachedResult
+                  : a.mcpBaseUrl.trim().isEmpty
+                  ? const AgentWorkResult.notConfigured()
+                  : const AgentWorkResult.unavailable(
+                      'Activity is refreshing after an endpoint change',
+                    );
+              final items = result.items;
+              final avatarColor = Color(a.colorArgb);
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: Color(a.colorArgb),
+                  backgroundColor: avatarColor,
                   child: Text(
                     a.name.isNotEmpty ? a.name[0].toUpperCase() : '?',
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: foregroundFor(avatarColor)),
                   ),
                 ),
                 title: Text(a.name),
@@ -231,8 +249,16 @@ class _AgentsScreenState extends ConsumerState<AgentsScreen> {
                   [
                     a.machine,
                     if (a.mcpBaseUrl.isNotEmpty) a.mcpBaseUrl,
-                    if (items.isEmpty)
-                      'no active work reported'
+                    if (workAsync.isLoading)
+                      'checking fresh activity…'
+                    else if (workAsync.hasError)
+                      'activity unavailable — refresh to retry'
+                    else if (!result.endpointConfigured)
+                      'no side-car URL configured'
+                    else if (result.isUnavailable)
+                      'activity unavailable — ${result.error}'
+                    else if (items.isEmpty)
+                      'no fresh active work reported'
                     else
                       items
                           .map((w) => '${w.fullName}#${w.prNumber}')
@@ -242,6 +268,7 @@ class _AgentsScreenState extends ConsumerState<AgentsScreen> {
                 isThreeLine: true,
                 onTap: () => _showEditor(existing: a),
                 trailing: IconButton(
+                  tooltip: 'Remove ${a.name}',
                   icon: const Icon(Icons.delete_outline),
                   onPressed: () => _confirmDelete(a),
                 ),

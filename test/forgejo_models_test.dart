@@ -32,8 +32,7 @@ void main() {
       expect(pr.title, 'docs: eval report');
       expect(pr.user.login, 'avidullu');
       expect(pr.draft, isFalse);
-      expect(pr.routePath,
-          '/Khelsutra/badminton-highlight-indexer/pulls/623');
+      expect(pr.routePath, '/Khelsutra/badminton-highlight-indexer/pulls/623');
       expect(pr.updatedAt, isNotNull);
     });
   });
@@ -47,10 +46,7 @@ void main() {
     });
 
     test('isConfigured requires both fields', () {
-      expect(
-        const AppSettings(baseUrl: '', token: 'x').isConfigured,
-        isFalse,
-      );
+      expect(const AppSettings(baseUrl: '', token: 'x').isConfigured, isFalse);
       expect(
         const AppSettings(
           baseUrl: AppSettings.defaultBaseUrl,
@@ -64,6 +60,33 @@ void main() {
           token: 'tok',
         ).isConfigured,
         isTrue,
+      );
+    });
+
+    test('validates the trusted HTTPS Forgejo origin', () {
+      expect(
+        AppSettings.baseUrlValidationError(AppSettings.defaultBaseUrl),
+        isNull,
+      );
+      expect(
+        AppSettings.baseUrlValidationError('http://${AppSettings.trustedHost}'),
+        contains('HTTPS'),
+      );
+      expect(
+        AppSettings.baseUrlValidationError('https://evil.example'),
+        contains('trusts only'),
+      );
+      expect(
+        AppSettings.baseUrlValidationError(
+          'https://${AppSettings.trustedHost}:8443',
+        ),
+        contains(AppSettings.defaultBaseUrl),
+      );
+      expect(
+        AppSettings.baseUrlValidationError(
+          'https://${AppSettings.trustedHost}/unexpected/path',
+        ),
+        contains('without credentials or a path'),
       );
     });
   });

@@ -4,7 +4,8 @@
 <dict>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:avis-pbook.tail651ec3.ts.net</string>
+		<!-- Tailnet-only host: development-signed builds use Apple's alternate mode. -->
+		<string>applinks:avis-pbook.tail651ec3.ts.net?mode=developer</string>
 	</array>
 </dict>
 </plist>

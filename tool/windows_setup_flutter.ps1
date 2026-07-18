@@ -1,38 +1,34 @@
+[CmdletBinding()]
+param(
+    [string]$FlutterRoot = "$env:USERPROFILE\flutter"
+)
+
 $ErrorActionPreference = "Stop"
-$ProgressPreference = "SilentlyContinue"
+$flutter = Join-Path $FlutterRoot "bin\flutter.bat"
 
-Write-Host "=== Flutter Windows setup ==="
-
-$flutterRoot = "C:\Users\avidu\flutter"
-$zip = "C:\Users\avidu\Downloads\flutter_windows_stable.zip"
-New-Item -ItemType Directory -Force -Path "C:\Users\avidu\Downloads" | Out-Null
-New-Item -ItemType Directory -Force -Path "C:\Users\avidu\Projects" | Out-Null
-
-if (-not (Test-Path "$flutterRoot\bin\flutter.bat")) {
-  Write-Host "Resolving latest stable Flutter for Windows..."
-  $rel = Invoke-RestMethod "https://storage.googleapis.com/flutter_infra_release/releases/releases_windows.json"
-  $hash = $rel.current_release.stable
-  $item = $rel.releases | Where-Object { $_.hash -eq $hash } | Select-Object -First 1
-  if (-not $item) { throw "Could not resolve stable Flutter release" }
-  $url = "https://storage.googleapis.com/flutter_infra_release/releases/" + $item.archive
-  Write-Host "Downloading $url"
-  Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
-  Write-Host "Extracting to C:\Users\avidu\ ..."
-  if (Test-Path $flutterRoot) { Remove-Item -Recurse -Force $flutterRoot }
-  Expand-Archive -Path $zip -DestinationPath "C:\Users\avidu" -Force
-  Write-Host "Extracted."
-} else {
-  Write-Host "Flutter already present at $flutterRoot"
+if (-not (Test-Path -LiteralPath $flutter)) {
+    throw @"
+Flutter was not found at '$FlutterRoot'.
+Install a verified Flutter 3.44.6+ archive using the official Windows guide,
+then rerun this script with -FlutterRoot if the SDK lives elsewhere.
+This helper intentionally never deletes or replaces an existing SDK directory.
+"@
 }
 
+$flutterBin = Join-Path $FlutterRoot "bin"
 $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
-if ($userPath -notlike "*$flutterRoot\bin*") {
-  [Environment]::SetEnvironmentVariable("Path", "$userPath;$flutterRoot\bin", "User")
-  Write-Host "Added Flutter to user PATH"
+$pathItems = @($userPath -split ';' | Where-Object { $_ })
+if ($pathItems -notcontains $flutterBin) {
+    [Environment]::SetEnvironmentVariable(
+        "Path",
+        (@($flutterBin) + $pathItems) -join ';',
+        "User"
+    )
+    Write-Host "Added '$flutterBin' to the start of the user PATH."
 }
-$env:Path = "$flutterRoot\bin;" + $env:Path
 
-& "$flutterRoot\bin\flutter.bat" --version
-& "$flutterRoot\bin\flutter.bat" config --no-analytics
-& "$flutterRoot\bin\flutter.bat" config --enable-web
-Write-Host "DONE_INSTALL"
+$env:Path = "$flutterBin;$env:Path"
+& $flutter --version
+& $flutter config --no-analytics
+& $flutter config --enable-web
+& $flutter doctor -v

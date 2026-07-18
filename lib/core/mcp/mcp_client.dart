@@ -1,9 +1,40 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:uuid/uuid.dart';
 
 import '../agents/agent_models.dart';
 import 'mcp_models.dart';
+
+/// Validates and normalizes a configured agent side-car base URL.
+///
+/// Remote control traffic must use HTTPS. Plain HTTP is accepted only for a
+/// loopback-only development server on the same device.
+String normalizeAgentEndpointUrl(String base) {
+  final uri = Uri.tryParse(base.trim());
+  if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+    throw const FormatException('Agent endpoint must be an absolute URL');
+  }
+  if (uri.userInfo.isNotEmpty ||
+      uri.query.isNotEmpty ||
+      uri.fragment.isNotEmpty) {
+    throw const FormatException(
+      'Agent endpoint cannot contain credentials, query, or fragment',
+    );
+  }
+  final host = uri.host.toLowerCase();
+  final isLoopback = host == 'localhost' || host == '127.0.0.1';
+  if (uri.scheme != 'https' && !(uri.scheme == 'http' && isLoopback)) {
+    throw const FormatException(
+      'Agent endpoint must use HTTPS (HTTP is allowed only on loopback)',
+    );
+  }
+  var normalized = uri.toString();
+  while (normalized.endsWith('/')) {
+    normalized = normalized.substring(0, normalized.length - 1);
+  }
+  return normalized;
+}
 
 /// Thin client for AgentForge agent side-cars.
 ///
@@ -12,30 +43,34 @@ import 'mcp_models.dart';
 /// - `GET  {base}/context?owner=&repo=&pr=`
 /// - `POST {base}/feedback`  body: `{owner,repo,pr,message}`
 ///
-/// **Optional MCP JSON-RPC** at `{base}/mcp`:
+/// **Experimental JSON-RPC compatibility adapter** at `{base}/mcp`:
 /// - `resources/read` uri `agentforge://context/{owner}/{repo}/{pr}`
-/// - `tools/call` name `send_feedback`
+///
+/// This is not a complete MCP Streamable HTTP session client. Mutating
+/// feedback uses only the idempotent side-car endpoint until MCP lifecycle,
+/// capability negotiation, authentication, and SSE are implemented.
 class McpClient {
-  McpClient({Dio? dio})
-      : _dio = dio ??
-            Dio(
-              BaseOptions(
-                connectTimeout: const Duration(seconds: 6),
-                receiveTimeout: const Duration(seconds: 12),
-                headers: {'Accept': 'application/json'},
-              ),
-            );
+  McpClient({Dio? dio, Uuid? uuid})
+    : _uuid = uuid ?? const Uuid(),
+      _dio =
+          dio ??
+          Dio(
+            BaseOptions(
+              connectTimeout: const Duration(seconds: 6),
+              receiveTimeout: const Duration(seconds: 12),
+              headers: {'Accept': 'application/json'},
+            ),
+          ) {
+    _dio.options
+      ..followRedirects = false
+      ..maxRedirects = 0;
+  }
 
   final Dio _dio;
+  final Uuid _uuid;
   int _rpcId = 1;
 
-  String _root(String base) {
-    var b = base.trim();
-    while (b.endsWith('/')) {
-      b = b.substring(0, b.length - 1);
-    }
-    return b;
-  }
+  String _root(String base) => normalizeAgentEndpointUrl(base);
 
   Future<AgentContext> fetchContext({
     required AgentEntry agent,
@@ -43,23 +78,29 @@ class McpClient {
     required String repo,
     required int prNumber,
   }) async {
-    final base = _root(agent.mcpBaseUrl);
+    late final String base;
+    try {
+      base = _root(agent.mcpBaseUrl);
+    } catch (e) {
+      return AgentContext.unavailable(
+        agentId: agent.id,
+        agentName: agent.name,
+        error: _shortErr(e),
+      );
+    }
     if (base.isEmpty) {
       return AgentContext.unavailable(
         agentId: agent.id,
         agentName: agent.name,
-        error: 'No MCP base URL configured',
+        error: 'No agent side-car URL configured',
+        sourceEndpoint: base,
       );
     }
 
     try {
       final res = await _dio.get<Map<String, dynamic>>(
         '$base/context',
-        queryParameters: {
-          'owner': owner,
-          'repo': repo,
-          'pr': prNumber,
-        },
+        queryParameters: {'owner': owner, 'repo': repo, 'pr': prNumber},
       );
       if (res.data != null) {
         return AgentContext.fromJson(
@@ -67,6 +108,7 @@ class McpClient {
           agentId: agent.id,
           agentName: agent.name,
           source: 'http',
+          sourceEndpoint: base,
         );
       }
     } catch (_) {
@@ -87,6 +129,7 @@ class McpClient {
             agentId: agent.id,
             agentName: agent.name,
             source: 'mcp',
+            sourceEndpoint: base,
           );
         }
       }
@@ -96,6 +139,7 @@ class McpClient {
           agentId: agent.id,
           agentName: agent.name,
           source: 'mcp',
+          sourceEndpoint: base,
         );
       }
     } catch (e) {
@@ -103,6 +147,7 @@ class McpClient {
         agentId: agent.id,
         agentName: agent.name,
         error: _shortErr(e),
+        sourceEndpoint: base,
       );
     }
 
@@ -110,6 +155,7 @@ class McpClient {
       agentId: agent.id,
       agentName: agent.name,
       error: 'No context endpoint responded',
+      sourceEndpoint: base,
     );
   }
 
@@ -119,15 +165,21 @@ class McpClient {
     required String repo,
     required int prNumber,
     required String message,
+    String clientMessageId = '',
   }) async {
-    final base = _root(agent.mcpBaseUrl);
-    if (base.isEmpty) {
-      return const FeedbackResult(ok: false, message: 'No MCP base URL');
+    late final String base;
+    try {
+      base = _root(agent.mcpBaseUrl);
+    } catch (e) {
+      return FeedbackResult(ok: false, message: _shortErr(e));
     }
     if (message.trim().isEmpty) {
       return const FeedbackResult(ok: false, message: 'Empty feedback');
     }
 
+    final messageId = clientMessageId.trim().isEmpty
+        ? _uuid.v4()
+        : clientMessageId.trim();
     try {
       final res = await _dio.post<Map<String, dynamic>>(
         '$base/feedback',
@@ -136,36 +188,33 @@ class McpClient {
           'repo': repo,
           'pr': prNumber,
           'message': message.trim(),
+          'client_message_id': messageId,
+          'idempotency_key': messageId,
         },
       );
       final data = res.data ?? const {};
-      final ok = data['ok'] != false && (res.statusCode ?? 500) < 400;
+      final rawDeliveryId = data['delivery_id'];
+      final deliveryId = rawDeliveryId is String ? rawDeliveryId.trim() : '';
+      final accepted = data['ok'] == true && (res.statusCode ?? 500) < 400;
+      final ok = accepted && deliveryId.isNotEmpty;
       return FeedbackResult(
         ok: ok,
-        message: (data['message'] ?? (ok ? 'Feedback sent' : 'Rejected'))
-            as String,
-      );
-    } catch (_) {
-      // MCP tools/call
-    }
-
-    try {
-      final result = await _jsonRpc(base, 'tools/call', {
-        'name': 'send_feedback',
-        'arguments': {
-          'owner': owner,
-          'repo': repo,
-          'pr': prNumber,
-          'message': message.trim(),
-        },
-      });
-      return FeedbackResult(
-        ok: true,
-        message: (result['message'] ?? result['content'] ?? 'Feedback sent')
-            .toString(),
+        message: accepted && deliveryId.isEmpty
+            ? 'Side-car accepted feedback without a delivery receipt. '
+                  'Retry the unchanged draft with its existing message ID.'
+            : (data['message'] ?? (ok ? 'Feedback queued' : 'Rejected'))
+                  .toString(),
+        clientMessageId: messageId,
+        deliveryId: deliveryId,
       );
     } catch (e) {
-      return FeedbackResult(ok: false, message: _shortErr(e));
+      // Never retry an ambiguous write through another transport: the REST
+      // endpoint may have accepted it before a timeout or malformed response.
+      return FeedbackResult(
+        ok: false,
+        message: _shortErr(e),
+        clientMessageId: messageId,
+      );
     }
   }
 
@@ -177,21 +226,18 @@ class McpClient {
     final id = _rpcId++;
     final res = await _dio.post<Map<String, dynamic>>(
       '$base/mcp',
-      data: {
-        'jsonrpc': '2.0',
-        'id': id,
-        'method': method,
-        'params': params,
-      },
+      data: {'jsonrpc': '2.0', 'id': id, 'method': method, 'params': params},
       options: Options(
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json, text/event-stream',
+          // This compatibility adapter only accepts JSON responses.
+          'Accept': 'application/json',
         },
       ),
     );
     final data = res.data;
     if (data == null) throw StateError('Empty MCP response');
+    if (data['id'] != id) throw StateError('MCP response id mismatch');
     if (data['error'] != null) {
       throw StateError(data['error'].toString());
     }

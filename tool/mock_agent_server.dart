@@ -11,14 +11,15 @@ import 'dart:io';
 Future<void> main(List<String> args) async {
   final port = args.isNotEmpty ? int.parse(args.first) : 8765;
   final feedbackLog = <String>[];
+  final feedbackById = <String, String>{};
 
   final server = await HttpServer.bind(InternetAddress.loopbackIPv4, port);
   print('Mock agent listening on http://127.0.0.1:$port');
-  print('Register in AgentForge Agents with this MCP base URL.');
+  print('Register in AgentForge Agents with this side-car URL.');
 
   await for (final request in server) {
     try {
-      await _handle(request, feedbackLog);
+      await _handle(request, feedbackLog, feedbackById);
     } catch (e, st) {
       print('Error: $e\n$st');
       request.response.statusCode = 500;
@@ -28,7 +29,11 @@ Future<void> main(List<String> args) async {
   }
 }
 
-Future<void> _handle(HttpRequest request, List<String> feedbackLog) async {
+Future<void> _handle(
+  HttpRequest request,
+  List<String> feedbackLog,
+  Map<String, String> feedbackById,
+) async {
   // CORS for Chrome demo
   request.response.headers
     ..set('Access-Control-Allow-Origin', '*')
@@ -73,7 +78,7 @@ Future<void> _handle(HttpRequest request, List<String> feedbackLog) async {
           '1) Land remaining review notes on $owner/$repo#$pr\n'
           '2) Keep CI green\n'
           '3) Hand off for owner merge',
-      'reasoning':
+      'rationale_summary':
           'Mock agent: focusing on docs/test polish. '
           'Feedback count so far: ${feedbackLog.length}.',
       'recent_actions': [
@@ -91,9 +96,44 @@ Future<void> _handle(HttpRequest request, List<String> feedbackLog) async {
     final body = await utf8.decoder.bind(request).join();
     final data = jsonDecode(body) as Map<String, dynamic>;
     final msg = (data['message'] ?? '').toString();
-    feedbackLog.add(msg);
-    print('Feedback: $msg');
-    _json(request, {'ok': true, 'message': 'queued (${feedbackLog.length})'});
+    final clientMessageId = (data['client_message_id'] ?? '').toString();
+    final idempotencyKey = (data['idempotency_key'] ?? '').toString();
+    if (clientMessageId.isEmpty || idempotencyKey != clientMessageId) {
+      request.response.statusCode = HttpStatus.badRequest;
+      _json(request, {
+        'ok': false,
+        'message': 'Matching client_message_id and idempotency_key required',
+      });
+      return;
+    }
+    final signature = jsonEncode({
+      'owner': data['owner'],
+      'repo': data['repo'],
+      'pr': data['pr'],
+      'message': msg,
+    });
+    final prior = feedbackById[clientMessageId];
+    if (prior != null && prior != signature) {
+      request.response.statusCode = HttpStatus.conflict;
+      _json(request, {
+        'ok': false,
+        'message': 'Idempotency key was already used for another payload',
+      });
+      return;
+    }
+    final duplicate = prior == signature;
+    if (!duplicate) {
+      feedbackById[clientMessageId] = signature;
+      feedbackLog.add(msg);
+      print('Feedback: $msg');
+    }
+    _json(request, {
+      'ok': true,
+      'message': duplicate
+          ? 'already queued (${feedbackLog.length})'
+          : 'queued (${feedbackLog.length})',
+      'delivery_id': clientMessageId,
+    });
     return;
   }
 
@@ -112,7 +152,7 @@ Future<void> _handle(HttpRequest request, List<String> feedbackLog) async {
               'uri': (data['params'] as Map?)?['uri'],
               'text': jsonEncode({
                 'plan': 'MCP resource plan',
-                'reasoning': 'via resources/read',
+                'rationale_summary': 'via resources/read',
                 'recent_actions': ['mcp read'],
                 'status': 'in_progress',
               }),

@@ -1,0 +1,16 @@
+.gitattributes text eol=lf
+.gitignore text eol=lf
+.metadata text eol=lf
+*.dart text eol=lf
+*.entitlements text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.lock text eol=lf
+*.md text eol=lf
+*.pbxproj text eol=lf
+*.plist text eol=lf
+*.ps1 text eol=lf
+*.xml text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.png binary
