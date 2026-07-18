@@ -23,10 +23,24 @@ timestamp() {
 started_at=$SECONDS
 child_pid=''
 child_pgid=''
+child_pgid_file=''
 heartbeat_pid=''
 
 child_is_alive() {
   if [[ -n $child_pgid ]]; then
+    local states state
+    # Container PID 1 implementations do not always reap an orphaned zombie
+    # promptly. A zombie cannot execute or retain resources other than its
+    # process-table entry, so do not mistake it for a live command and spin
+    # through the entire cancellation grace period.
+    if states=$(ps -o stat= --pgid "$child_pgid" 2>/dev/null); then
+      while IFS= read -r state; do
+        state=${state#"${state%%[![:space:]]*}"}
+        [[ -z $state || ${state:0:1} == Z || ${state:0:1} == X ]] && continue
+        return 0
+      done <<<"$states"
+      return 1
+    fi
     kill -0 -- "-$child_pgid" 2>/dev/null
   else
     kill -0 "$child_pid" 2>/dev/null
@@ -67,6 +81,9 @@ cleanup() {
   if [[ -n $child_pid ]]; then
     terminate_child
   fi
+  if [[ -n $child_pgid_file ]]; then
+    rm -f -- "$child_pgid_file"
+  fi
 }
 
 on_signal() {
@@ -87,10 +104,40 @@ printf '\n'
 
 if command -v setsid >/dev/null 2>&1; then
   # A dedicated session lets cancellation terminate Flutter/Gradle/Java
-  # descendants, not merely the immediate wrapper process.
-  setsid --wait "$@" &
+  # descendants, not merely the immediate wrapper process. `setsid --wait`
+  # may fork when its caller is already a process-group leader, so `$!` is not
+  # a portable PGID. Record the real session leader from inside the session.
+  pgid_temp_root=${RUNNER_TEMP:-${TMPDIR:-/tmp}}
+  [[ -d $pgid_temp_root ]] || {
+    printf '[%s] ERROR heartbeat temp directory is unavailable\n' \
+      "$(timestamp)" >&2
+    exit 1
+  }
+  child_pgid_file=$(mktemp "$pgid_temp_root/agentforge-pgid.XXXXXX")
+  chmod 600 "$child_pgid_file"
+  setsid --wait bash -c '
+    pgid_file=$1
+    shift
+    printf "%s\n" "$$" >"$pgid_file"
+    exec "$@"
+  ' _ "$child_pgid_file" "$@" &
   child_pid=$!
-  child_pgid=$child_pid
+  for _ in $(seq 1 100); do
+    if IFS= read -r child_pgid <"$child_pgid_file" &&
+      [[ $child_pgid =~ ^[1-9][0-9]*$ ]]; then
+      break
+    fi
+    child_pgid=''
+    kill -0 "$child_pid" 2>/dev/null || break
+    sleep 0.05
+  done
+  [[ $child_pgid =~ ^[1-9][0-9]*$ ]] || {
+    printf '[%s] ERROR unable to establish command process group\n' \
+      "$(timestamp)" >&2
+    exit 1
+  }
+  rm -f -- "$child_pgid_file"
+  child_pgid_file=''
 else
   printf '[%s] WARN process-group isolation unavailable; using child PID\n' \
     "$(timestamp)" >&2

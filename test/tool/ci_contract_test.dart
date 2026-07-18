@@ -30,6 +30,17 @@ void main() {
     expect(workflow, isNot(contains('actions/cache@')));
   });
 
+  test('heartbeat wrapper discovers the real setsid process group', () {
+    final wrapper = File(
+      '${repoRoot.path}/tool/ci/run_with_heartbeat.sh',
+    ).readAsStringSync();
+
+    expect(wrapper, contains('agentforge-pgid.XXXXXX'));
+    expect(wrapper, contains('unable to establish command process group'));
+    expect(wrapper, contains(r'printf "%s\n" "$$" >"$pgid_file"'));
+    expect(wrapper, contains(r'ps -o stat= --pgid "$child_pgid"'));
+  });
+
   test('all workflow actions stay pinned to immutable commit SHAs', () {
     final workflow = File(
       '${repoRoot.path}/.github/workflows/ci.yml',
