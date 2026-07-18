@@ -83,6 +83,8 @@ assert_package_paths_contained() {
 
   canonical_target=$(realpath -m -- "$target") ||
     die 'package target is not canonical'
+  [[ $canonical_target == "$target" ]] ||
+    die 'canonical package target differs from its exact allow-listed path'
   case "$canonical_target" in
     "$sdk_root"/*) ;;
     *) die 'canonical package target escaped the SDK root' ;;
@@ -90,6 +92,8 @@ assert_package_paths_contained() {
 
   canonical_marker=$(realpath -m -- "$marker") ||
     die 'package marker is not canonical'
+  [[ $canonical_marker == "$marker" ]] ||
+    die 'canonical package marker differs from its exact allow-listed path'
   case "$canonical_marker" in
     "$canonical_target"/*) ;;
     *) die 'canonical package marker escaped its package directory' ;;
