@@ -12,8 +12,8 @@ checked-in copy is a repository-visible checkpoint.
 ## You are here
 
 - **Hot path: Forgejo PR #10 (AF-010 / PII-redaction S2)** — origin-bound
-  credential store. Branch `af-010-origin-bound-credentials`. Feature tip
-  `ccbe8a7`; after main merge reconciliation, re-verify tip with `git log -1`.
+  credential store. Branch `af-010-origin-bound-credentials`. Tip
+  `c19daeb` (reviews 271/272: production origin index + URL-change PAT clear).
 - AF-009 / PR #7 **SHIPPED** as `93e06d7` (verified tip `543b005`); MSI LGTM
   review 267; 76 tests + APK/Web green.
 - AF-017 OpenAI Build Week submission is **IN PROGRESS**. Tracker:
