@@ -11,22 +11,23 @@ checked-in copy is a repository-visible checkpoint.
 
 ## You are here
 
-- **Hot path: Forgejo PR #12 (AF-011 / PII-redaction S3)** — wire Dart to
-  const `AppConfig`. Branch `af-011-wire-appconfig`, tip `966b9d5`.
-- AF-010 / PR #10 **SHIPPED** as `0a42295` (tip `966b9d5`); CI green + LGTM 276.
+- **Hot path: AF-012 / PII-redaction S4** — synthetic test/tool fixtures.
+  Branch `af-012-synthetic-test-fixtures` (from `origin/main` @ `b0156cc`).
+- AF-011 / PR #12 **SHIPPED** as `b0156cc` (tip `f2ebdc2`); CI green + LGTM 278.
+- AF-010 / PR #10 **SHIPPED** as `0a42295`.
 - AF-009 / PR #7 **SHIPPED** as `93e06d7`.
+- Concurrent (do not derail hot path): PR #13 AF-018 CI hardening (codex).
 - AF-017 OpenAI Build Week submission is **IN PROGRESS**. Tracker:
   `docs/projects/AF-017-OpenAI-Build-Week-Submission.md`; hard deadline
-  2026-07-22 05:30 IST. Owner registration/license/hosting gates remain open.
-- AF-006 mobile design ingestion remains **IN PROGRESS** (A1 intake shipped).
+  2026-07-22 05:30 IST.
 
 ## Next steps / open threads
 
-1. Land AF-011: finish wire + open Forgejo PR; CI + review; merge.
-2. AF-012 from fresh `origin/main` after #11 lands (tests/tool synthetic swap).
+1. Land AF-012: PR + CI + review; merge.
+2. AF-013/014 (Android/iOS) can proceed after AF-011 (done); AF-015 waits
+   for AF-012 + AF-013 + AF-014.
 3. Follow AF-017 deadline-critical ledger for Build Week submission.
-4. Execute only unblocked rows in the AF-006 mobile-design tracker.
-5. Resolve AF-008 license/distribution and AF-002 signing gates before
+4. Resolve AF-008 license/distribution and AF-002 signing gates before
    claiming verified-link completion.
 
 ## Ramp-up kit
@@ -35,9 +36,8 @@ Read these after `git pull --ff-only`:
 
 - `docs/08-Implementation-Plan-and-Milestones.md` — canonical project ledger.
 - `docs/11-PII-Redaction.md` — AF-009…AF-015 architecture and gates.
-- `docs/projects/AF-017-OpenAI-Build-Week-Submission.md` — submission tracker.
 - `lib/core/config/app_config.dart` — exports generated `AppConfig`.
-- `lib/core/settings/settings_repository.dart` — AF-010 origin-bound PATs.
+- `tool/demo_forgejo.dart` — live demo (FORGEJO_URL / FORGEJO_TOKEN).
 - `tool/generate_config.dart` / `tool/check_no_pii.dart` — AF-009 tooling.
 
 ## Key decisions

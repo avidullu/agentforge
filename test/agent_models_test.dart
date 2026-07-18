@@ -7,26 +7,26 @@ void main() {
     const a = AgentEntry(
       id: '1',
       name: 'Codex',
-      machine: 'avis-msi',
-      mcpBaseUrl: 'http://100.1.2.3:8765',
+      machine: 'dev-workstation',
+      mcpBaseUrl: 'http://127.0.0.1:8765',
     );
     final raw = AgentEntry.encodeList([a]);
     final list = AgentEntry.decodeList(raw);
     expect(list, hasLength(1));
     expect(list.first.name, 'Codex');
-    expect(list.first.mcpBaseUrl, 'http://100.1.2.3:8765');
+    expect(list.first.mcpBaseUrl, 'http://127.0.0.1:8765');
   });
 
   test('AgentWorkItem parses repo string', () {
     final w = AgentWorkItem.fromJson({
-      'repo': 'Khelsutra/badminton-highlight-indexer',
+      'repo': 'owner/demo-repo',
       'pr_number': 611,
       'title': 'fix',
       'status': 'in_progress',
       'updated_at': '2026-07-18T12:00:00Z',
     });
-    expect(w.owner, 'Khelsutra');
-    expect(w.repo, 'badminton-highlight-indexer');
+    expect(w.owner, 'owner');
+    expect(w.repo, 'demo-repo');
     expect(w.prNumber, 611);
     expect(w.updatedAt, DateTime.utc(2026, 7, 18, 12));
     expect(w.isActiveAt(DateTime.utc(2026, 7, 18, 12, 4)), isTrue);
