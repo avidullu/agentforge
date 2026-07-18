@@ -64,7 +64,7 @@ update its own row, the affected gap rows, and this document's changelog.
 
 | ID | Deliverable | Status | Dependency / acceptance gate | PR |
 |---|---|---|---|---|
-| AF-006-A1 | Safe intake index, source hashes, final-pass audit, gap register, code map, pickup plan | **IN REVIEW** | Docs/assets only; no raw private binaries or prototype contracts enter Git | Forgejo #4 (owner instance) |
+| AF-006-A1 | Safe intake index, source hashes, final-pass audit, gap register, code map, pickup plan | **SHIPPED** | Docs/assets only; no raw private binaries or prototype contracts enter Git | Forgejo #4; [merge `8b10705`](https://github.com/avidullu/agentforge/commit/8b10705f3e5252441a8b7beb3e991e3699a270d5) |
 | AF-006-A2 | Canonical sanitized visual package: portrait exports, real Add Agent/pairing states, provenance/notices, MIME-correct assets, checksum manifest | **BLOCKED** | AF-008 license/provenance decision; private-data redaction; regenerated distinct captures | — |
 | AF-006-B | Semantic Flutter tokens and reusable accessible primitives | **BLOCKED** | G023 theme decision plus G008/G015/G016 acceptance values; no failing source color imported verbatim | — |
 | AF-006-C | Four-tab app shell plus Home state-complete visual implementation | **BLOCKED** | AF-006-B; router/deep-link regression tests; agent carousel waits for AF-005 | — |
@@ -232,6 +232,13 @@ AF-006 can move to **DONE** only when:
 
 ## Changelog
 
+- **2026-07-18 — AF-006-A1 SHIPPED:** Forgejo #4 merged reviewed head
+  `c65f8e46c6b8d07860222081b7ad4ec7d7842988` non-forced as
+  [`8b10705f`](https://github.com/avidullu/agentforge/commit/8b10705f3e5252441a8b7beb3e991e3699a270d5).
+  Exact-head CI passed formatting, fatal-info analysis, 46 tests, 35.92% line
+  coverage against the 29% floor, Android debug APK and release Web build.
+  Forgejo and GitHub `main` were then verified identical; downstream rows stay
+  blocked on their recorded decisions and contracts.
 - **2026-07-18 — Forgejo #4 review addressed:** Removed new private-host PR
   URLs, made the three `PARTIAL` statuses traceable to shipped symbols, added
   operational AF-006-B contrast inputs, and changed the manifest recipe from a
