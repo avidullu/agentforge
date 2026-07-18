@@ -88,7 +88,18 @@ printf '\n'
 if command -v setsid >/dev/null 2>&1; then
   # A dedicated session lets cancellation terminate Flutter/Gradle/Java
   # descendants, not merely the immediate wrapper process.
-  setsid --wait "$@" &
+  #
+  # util-linux supports `setsid --wait` (or `-w`). BusyBox / older setsid
+  # reject unknown flags and exit immediately — that was failing Forgejo
+  # quality ~1m after Flutter setup on the first heartbeat-wrapped step.
+  # Probe once; fall back to plain `setsid` which execs into the command.
+  if setsid --wait true >/dev/null 2>&1; then
+    setsid --wait "$@" &
+  else
+    printf '[%s] WARN setsid --wait unavailable; using plain setsid\n' \
+      "$(timestamp)" >&2
+    setsid "$@" &
+  fi
   child_pid=$!
   child_pgid=$child_pid
 else
