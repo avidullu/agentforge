@@ -8,7 +8,7 @@
 
 **Owner:** repository owner (username omitted from this tracked doc)
 
-**Evidence (D4 — no private host):** Forgejo #3 @ tip of `af-009-pii-redaction-bug`
+**Evidence:** [Forgejo #3](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/3) · [`7481d77`](https://github.com/avidullu/agentforge/commit/7481d77842f9ba692fdd201eaf76e33c4468421e) (Forgejo PR link is interim until AF-015; GitHub commit pins rev-7 plan content). Planning row: **AF-016**.
 (use PR head SHA + GitHub-mirror commit link when the branch is pushed; after
 merge, pin the merge commit). Planning row: **AF-016**.
 
