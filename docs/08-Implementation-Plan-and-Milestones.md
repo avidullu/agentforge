@@ -93,7 +93,7 @@ update its owning tracker row and changelog.
 | AF-014 | PII redaction S6: iOS `AgentForge.xcconfig` include chain; preserve RunnerTests bundle id; entitlement host; `-showBuildSettings` both targets | **PLANNED** | AF-011 | — |
 | AF-015 | PII redaction S7: docs/handoff redaction + Forgejo-PR-link rewrite (SHA + GitHub mirror) + `docs/CONFIGURATION.md` + well-known templates/render + tracked-`web/` sweep | **PLANNED** | AF-010, AF-012, AF-013, AF-014 | — |
 | AF-017 | OpenAI Build Week submission (multi-PR): judge-safe synthetic demo, coherent golden path, Codex/GPT-5.6 evidence, hosted test build, media and compliance | **IN PROGRESS** | Owner license/model/session/hosting actions; hard deadline 2026-07-22 05:30 IST | [AF-017 tracker](projects/AF-017-OpenAI-Build-Week-Submission.md) |
-| AF-018 | CI regression hardening (multi-PR): deterministic quality/build lanes, observable heartbeats, coverage ratchets, Android SDK safety | **IN PROGRESS — A + CANCELLATION FOLLOW-UP OPEN** | Merge Forgejo #16, then require Forgejo #13 exact-head green CI | [AF-018 tracker](projects/AF-018-CI-Regression-Hardening.md) · Forgejo #13 · Forgejo #16 |
+| AF-018 | CI regression hardening (multi-PR): deterministic quality/build lanes, observable heartbeats, coverage ratchets, Android SDK safety | **IN REVIEW — A READY (local green)** | Forgejo #16 stacked into #13 tip; await exact-head green then merge | [AF-018 tracker](projects/AF-018-CI-Regression-Hardening.md) · Forgejo #13 · Forgejo #16 |
 
 > **PII redaction dependency note (rev 3).** Each branch starts from a
 > fresh `origin/main` after its dependencies merge (topological, not
