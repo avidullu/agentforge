@@ -61,13 +61,24 @@ class ConfigValidationException implements Exception {
 }
 
 /// Locate the repository root (directory containing `pubspec.yaml`).
+///
+/// Tests may set `AGENTFORGE_ROOT` to an isolated fixture directory so CLI
+/// tools never mutate a developer checkout.
 Directory findRepoRoot([Directory? start]) {
+  final override = Platform.environment['AGENTFORGE_ROOT'];
+  if (override != null && override.trim().isNotEmpty) {
+    final dir = Directory(override.trim());
+    if (!dir.existsSync()) {
+      throw StateError('AGENTFORGE_ROOT does not exist');
+    }
+    return dir;
+  }
   var dir = start ?? Directory.current;
   while (true) {
     if (File('${dir.path}/pubspec.yaml').existsSync()) return dir;
     final parent = dir.parent;
     if (parent.path == dir.path) {
-      throw StateError('Could not find repo root (pubspec.yaml) from $start');
+      throw StateError('Could not find repo root (pubspec.yaml)');
     }
     dir = parent;
   }
@@ -82,7 +93,7 @@ File resolveConfigFile(Directory repoRoot) {
     final f = File(fromEnv.trim());
     if (!f.existsSync()) {
       throw ConfigValidationException(
-        'AGENTFORGE_CONFIG points to missing file: ${f.path}',
+        'AGENTFORGE_CONFIG points to a missing file',
       );
     }
     return f;

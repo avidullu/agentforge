@@ -1,29 +1,34 @@
 import 'dart:io';
 
-/// Dart executable for the same SDK running this test process.
+/// Dart CLI executable for the same SDK running this test process.
 ///
-/// Avoids PATH lookup of a separate system Dart that fails with
-/// "Invalid SDK hash" under `flutter test` (review finding).
+/// Never falls back to a bare PATH `dart` or a non-Dart host such as
+/// `flutter_tester` without a proven sibling CLI (review 264).
 String hermeticDartExecutable() {
-  final flutterRoot = Platform.environment['FLUTTER_ROOT'];
-  if (flutterRoot != null && flutterRoot.isNotEmpty) {
-    final suffix = Platform.isWindows ? '.exe' : '';
-    final candidate = File('$flutterRoot/bin/cache/dart-sdk/bin/dart$suffix');
-    if (candidate.existsSync()) return candidate.path;
-  }
-
-  final resolved = Platform.resolvedExecutable;
-  final base = resolved.split(Platform.pathSeparator).last.toLowerCase();
-  if (base == 'dart' || base == 'dart.exe') {
-    return resolved;
-  }
-
-  // flutter_tester / other host: look beside resolved binary.
-  final dir = File(resolved).parent.path;
   final suffix = Platform.isWindows ? '.exe' : '';
-  final sibling = File('$dir/dart$suffix');
-  if (sibling.existsSync()) return sibling.path;
+  final candidates = <File>[];
 
-  // Last resort: still prefer resolved over bare PATH `dart`.
-  return resolved;
+  final flutterRoot = Platform.environment['FLUTTER_ROOT'];
+  if (flutterRoot != null && flutterRoot.trim().isNotEmpty) {
+    candidates.add(File('$flutterRoot/bin/cache/dart-sdk/bin/dart$suffix'));
+  }
+
+  final resolved = File(Platform.resolvedExecutable);
+  final base = resolved.uri.pathSegments.isNotEmpty
+      ? resolved.uri.pathSegments.last.toLowerCase()
+      : '';
+  if (base == 'dart' || base == 'dart.exe') {
+    candidates.add(resolved);
+  } else {
+    // flutter_tester / other host binary — only accept a real dart sibling.
+    candidates.add(File('${resolved.parent.path}/dart$suffix'));
+  }
+
+  for (final c in candidates) {
+    if (c.existsSync()) return c.absolute.path;
+  }
+
+  throw StateError(
+    'hermetic Dart CLI not found (set FLUTTER_ROOT or run under Flutter SDK)',
+  );
 }

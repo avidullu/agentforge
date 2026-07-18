@@ -43,6 +43,14 @@ jobs:
       - name: Generate config (tracked synthetic)
         run: dart run tool/generate_config.dart
 
+      # Prevent "generate then rewrite" from masking stale/private committed gens.
+      - name: Generated tracked outputs match HEAD
+        run: |
+          git diff --exit-code -- \
+            lib/core/config/generated/app_config.selected.dart \
+            agentforge-config.properties \
+            ios/Flutter/AgentForge.xcconfig
+
       - name: Analyze
         run: flutter analyze --fatal-infos
 

@@ -33,6 +33,8 @@ void main() {
       );
       expect(hits, isNotEmpty);
       expect(hits.first.patternLabel, 'blocklist');
+      // Never embed matched values in hit strings.
+      expect(hits.first.toString(), isNot(contains('pii-host')));
     });
   });
 
@@ -55,30 +57,39 @@ void main() {
     });
 
     test('rejects suffix-host bypass of synthetic origin', () {
-      final f = File('${Directory.systemTemp.path}/struct-suffix.txt');
-      f.writeAsStringSync('u=https://forge.example.test.evil.invalid/x\n');
+      final f = File('${Directory.systemTemp.path}/struct-suffix.txt')
+        ..writeAsStringSync('u=https://forge.example.test.evil.invalid/x\n');
+      addTearDown(() {
+        if (f.existsSync()) f.deleteSync();
+      });
       final hits = scanStructuralHttps(files: [f], repoRoot: '');
       expect(hits, isNotEmpty);
-      if (f.existsSync()) f.deleteSync();
     });
 
-    test('rejects userinfo and alternate port on synthetic host', () {
-      final f = File('${Directory.systemTemp.path}/struct-userinfo.txt');
-      f.writeAsStringSync(
-        'a=https://user@forge.example.test/path\n'
-        'b=https://forge.example.test:8443\n',
-      );
+    test('rejects userinfo, path, query, fragment, alt port', () {
+      final f = File('${Directory.systemTemp.path}/struct-adversarial.txt')
+        ..writeAsStringSync(
+          'a=https://forge.example.test@evil.invalid\n'
+          'b=https://forge.example.test/path\n'
+          'c=https://forge.example.test?q=1\n'
+          'd=https://forge.example.test#frag\n'
+          'e=https://forge.example.test:8443\n',
+        );
+      addTearDown(() {
+        if (f.existsSync()) f.deleteSync();
+      });
       final hits = scanStructuralHttps(files: [f], repoRoot: '');
-      expect(hits.length, greaterThanOrEqualTo(2));
-      if (f.existsSync()) f.deleteSync();
+      expect(hits.length, greaterThanOrEqualTo(5));
     });
 
-    test('allows exact synthetic origin with path', () {
-      final f = File('${Directory.systemTemp.path}/struct-exact.txt');
-      f.writeAsStringSync('u=https://forge.example.test/schemas/x\n');
+    test('allows exact synthetic origin only', () {
+      final f = File('${Directory.systemTemp.path}/struct-exact.txt')
+        ..writeAsStringSync('u=https://forge.example.test\n');
+      addTearDown(() {
+        if (f.existsSync()) f.deleteSync();
+      });
       final hits = scanStructuralHttps(files: [f], repoRoot: '');
       expect(hits, isEmpty);
-      if (f.existsSync()) f.deleteSync();
     });
   });
 
@@ -94,6 +105,11 @@ void main() {
       ], workingDirectory: repoRoot.path);
       expect(result.exitCode, isNot(0));
       expect(result.stdout.toString(), contains('hit'));
+      // Matched blocklist values must not appear in logs.
+      expect(
+        result.stdout.toString(),
+        isNot(contains('pii-host.example.invalid')),
+      );
     });
 
     test('report mode exits 0 even when hits exist', () {
@@ -120,6 +136,15 @@ void main() {
     });
   });
 
+  group('hermeticDartExecutable', () {
+    test('resolves an existing dart CLI', () {
+      final path = hermeticDartExecutable();
+      expect(File(path).existsSync(), isTrue);
+      final base = path.split(Platform.pathSeparator).last.toLowerCase();
+      expect(base == 'dart' || base == 'dart.exe', isTrue);
+    });
+  });
+
   group('committed selected AppConfig', () {
     test('selected.dart is synthetic-only and has no secret identifiers', () {
       final selected = File(
@@ -129,7 +154,6 @@ void main() {
       expect(text, contains(kSyntheticOrigin));
       expect(text, contains("trustedHost = 'forge.example.test'"));
       final lower = text.toLowerCase();
-      // Property names, not comments about secrets.
       expect(RegExp(r'\btoken\b').hasMatch(lower), isFalse);
       expect(RegExp(r'\bpassword\b').hasMatch(lower), isFalse);
       expect(RegExp(r'\bsecret\b').hasMatch(lower), isFalse);

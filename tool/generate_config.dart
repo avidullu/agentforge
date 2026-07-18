@@ -67,9 +67,9 @@ void main(List<String> args) {
   } on ConfigValidationException catch (e) {
     stderr.writeln(e.message);
     exitCode = 1;
-  } catch (e, st) {
-    stderr.writeln(e);
-    stderr.writeln(st);
+  } catch (_) {
+    // Never dump absolute paths or stacks in normal mode (review 264).
+    stderr.writeln('generate_config failed');
     exitCode = 1;
   }
 }

@@ -2,21 +2,18 @@ import 'dart:convert';
 import 'dart:io';
 
 /// One PII / structural hit in a scanned path.
+///
+/// [patternLabel] is a redacted category only — never store the matched value
+/// (blocklist mode would otherwise leak private patterns into CI logs).
 class PiiHit {
-  PiiHit({
-    required this.path,
-    required this.line,
-    required this.patternLabel,
-    required this.snippet,
-  });
+  PiiHit({required this.path, required this.line, required this.patternLabel});
 
   final String path;
   final int line;
   final String patternLabel;
-  final String snippet;
 
   @override
-  String toString() => '$path:$line [$patternLabel] $snippet';
+  String toString() => '$path:$line [$patternLabel]';
 }
 
 /// Modes for [scanPaths].
@@ -39,7 +36,7 @@ const String kSyntheticHttpsOrigin = 'https://forge.example.test';
 /// `allow:` section is accepted but not required for S1 fixture tests.
 List<String> loadBlocklistPatterns(File file) {
   if (!file.existsSync()) {
-    throw StateError('blocklist file missing: ${file.path}');
+    throw StateError('blocklist file missing');
   }
   final patterns = <String>[];
   var inAllow = false;
@@ -86,8 +83,8 @@ List<PiiHit> scanWithBlocklist({
             PiiHit(
               path: rel,
               line: i + 1,
+              // Redacted category only — never echo the matched value.
               patternLabel: 'blocklist',
-              snippet: _clip(lines[i]),
             ),
           );
           break;
@@ -100,13 +97,17 @@ List<PiiHit> scanWithBlocklist({
 
 /// Structural rule for public CI (after S7 will be fail-closed):
 /// In scoped sources, the only allowed non-loopback `https://` origin
-/// literal is [kSyntheticHttpsOrigin]. Loopback fixtures remain allowed.
+/// literal is [kSyntheticHttpsOrigin] exactly. Loopback fixtures remain allowed.
 List<PiiHit> scanStructuralHttps({
   required Iterable<File> files,
   String repoRoot = '',
 }) {
   final hits = <PiiHit>[];
-  final httpsRe = RegExp(r'https://[A-Za-z0-9._:/\-]+', caseSensitive: false);
+  // Capture whole literal; do not truncate at `@` / `?` / `#` (review 264).
+  final httpsRe = RegExp(
+    r'''https://[^\s"'<>\)\]\},]+''',
+    caseSensitive: false,
+  );
 
   for (final file in files) {
     if (!file.existsSync()) continue;
@@ -122,12 +123,7 @@ List<PiiHit> scanStructuralHttps({
         final url = match.group(0)!;
         if (_isAllowedHttpsLiteral(url)) continue;
         hits.add(
-          PiiHit(
-            path: rel,
-            line: i + 1,
-            patternLabel: 'structural-https',
-            snippet: _clip(url),
-          ),
+          PiiHit(path: rel, line: i + 1, patternLabel: 'structural-https'),
         );
       }
     }
@@ -139,21 +135,25 @@ bool _isAllowedHttpsLiteral(String url) {
   final uri = Uri.tryParse(url);
   if (uri == null || !uri.hasScheme) return false;
   final scheme = uri.scheme.toLowerCase();
-  if (scheme != 'https') return false;
+  if (scheme != 'https' && scheme != 'http') return false;
   if (uri.userInfo.isNotEmpty) return false;
 
   final host = uri.host.toLowerCase();
-  // Loopback fixtures for mock-agent tests.
+  // Loopback fixtures for mock-agent tests (any path/port).
   if (host == '127.0.0.1' || host == 'localhost' || host == '::1') {
-    return true;
+    return scheme == 'http' || scheme == 'https';
   }
   // JSON Schema meta URLs are public infrastructure, not Forgejo hosts.
-  if (host == 'json-schema.org') return true;
+  if (host == 'json-schema.org' && scheme == 'https') {
+    return true;
+  }
 
-  // Exact synthetic origin only: scheme+host (+ implicit 443). No suffix hosts,
-  // no alternate ports, no userinfo (docs/11 §8.1).
+  // Exact synthetic origin only (docs/11 §8.1) — no path/query/fragment/port/userinfo.
+  if (scheme != 'https') return false;
   if (host != 'forge.example.test') return false;
   if (uri.hasPort && uri.port != 443) return false;
+  if (uri.path.isNotEmpty && uri.path != '/') return false;
+  if (uri.query.isNotEmpty || uri.fragment.isNotEmpty) return false;
   return true;
 }
 
@@ -166,7 +166,7 @@ List<File> listTrackedFiles(Directory repoRoot) {
     stdoutEncoding: null,
   );
   if (result.exitCode != 0) {
-    throw StateError('git ls-files failed: ${result.stderr}');
+    throw StateError('git ls-files failed');
   }
   final raw = result.stdout;
   final bytes = raw is List<int> ? raw : utf8.encode(raw as String);
@@ -207,10 +207,4 @@ String _relPath(String absolute, String root) {
     return absolute.substring(normRoot.length).replaceAll('\\', '/');
   }
   return absolute.replaceAll('\\', '/');
-}
-
-String _clip(String s, [int max = 120]) {
-  final t = s.trim();
-  if (t.length <= max) return t;
-  return '${t.substring(0, max)}…';
 }
