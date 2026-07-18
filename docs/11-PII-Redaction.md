@@ -198,50 +198,106 @@ Entry points on the same generator:
 - `dart run tool/generate_config.dart --release` — deployment render
   (fails closed on signing / unresolved placeholders)
 
-### 5.3 Generator + bootstrap (review 250 — supported lifecycle, no tracked private gen)
+### 5.3 Generator + bootstrap (review 253 — always-present selected outputs)
 
-`tool/generate_config.dart` is the single entry point. It reads the schema,
-runs the §5.2 build validation, and emits:
+`tool/generate_config.dart` is the single entry point. It reads schema +
+config, runs §5.2 build validation, and **always writes the same set of
+selected output files** that the build system already includes.
 
-| Output | Tracked? | Notes |
+#### Chosen Dart mechanism (no conditional filesystem import)
+
+Dart **cannot** `import`/`export` a library only if a file exists
+(conditional imports use environment keys; missing URIs fail analysis —
+see Dart conditional import docs and `conditional_uri_does_not_exist`).
+
+**Therefore:**
+
+| File | Tracked? | Role |
 |---|---|---|
-| `lib/core/config/generated/app_config.defaults.dart` | **Yes** | Synthetic const from `config/agentforge.config.example.json`. Clean clone builds with zero pre-steps. |
-| `lib/core/config/generated/app_config.gen.dart` | **No** (gitignored) | Real-value const overlay when `AGENTFORGE_CONFIG` / local `config/agentforge.config.json` is present. **Never commit.** |
-| `agentforge-config.properties` (repo root) | **No** when real; optional tracked example | Loaded via `rootProject.file("agentforge-config.properties")`. |
-| `ios/Flutter/AgentForge.xcconfig` | **No** when real; example committed | See §6.2 include chain. **Never** overwrite Flutter-owned `ios/Flutter/Generated.xcconfig`. |
-| Native scheme placeholders in manifests/plists | templates tracked | Filled from properties/xcconfig at build time. |
+| `lib/core/config/app_config.dart` | Yes | Single public API: `export 'generated/app_config.selected.dart';` only |
+| `lib/core/config/generated/app_config.selected.dart` | **Yes (synthetic in git)** | Sole definition of `const class AppConfig { ... }`. Always exists. |
+| `config/agentforge.config.example.json` | Yes | Source of synthetic values |
+| `config/agentforge.config.json` | **No** (gitignored) | Optional real values for local/CI |
 
-**Import rule (Dart):** `app_config.dart` exports defaults, then conditionally
-parts/exports the gitignored gen overlay if present (or uses a tiny
-generated barrel). Analyze/test on a clean clone uses **defaults only**.
+**Generator write rule:**
 
-**Commands (all explicit — no pub hooks):**
+- Default (`dart run tool/generate_config.dart`): if real config is absent,
+  rewrite `app_config.selected.dart` from the **example** (idempotent with
+  the committed synthetic file).
+- With real config (`AGENTFORGE_CONFIG` or local gitignored JSON): rewrite
+  the **same** path `app_config.selected.dart` in the workspace for that
+  build only.
+- **Commit policy:** only the **synthetic** contents of
+  `app_config.selected.dart` may land in git. CI and pre-commit /
+  `check_no_pii` (when active) fail if the committed selected file’s origin
+  is not exactly the schema-derived synthetic origin
+  (`https://forge.example.test`). Local real regeneration dirties the
+  worktree by design; developers discard or never stage it.
+
+**No** dual `AppConfig` types, **no** “if file present” export, **no** pub
+hooks.
+
+#### Native: tracked synthetic always present + optional local override
+
+| File | Tracked? | Role |
+|---|---|---|
+| `agentforge-config.properties` (repo root) | **Yes** (synthetic) | Always present; Gradle always loads it |
+| `agentforge-config.local.properties` | **No** | Optional overrides; loaded **after** if exists |
+| `ios/Flutter/AgentForge.xcconfig` | **Yes** (synthetic) | Always present; included non-optionally |
+| `ios/Flutter/AgentForge.local.xcconfig` | **No** | Optional overrides via `#include?` |
+
+**Gradle (clean clone works with zero private files):**
+
+```kotlin
+// android/app/build.gradle.kts (sketch)
+val props = java.util.Properties()
+val rootProps = rootProject.file("agentforge-config.properties")
+require(rootProps.exists()) { "missing tracked agentforge-config.properties" }
+rootProps.inputStream().use { props.load(it) }
+val local = rootProject.file("agentforge-config.local.properties")
+if (local.exists()) local.inputStream().use { props.load(it) } // override
+```
+
+**Xcode include chain (matches this repo’s Flutter layout):**
+
+```xcconfig
+// ios/Flutter/Debug.xcconfig and Release.xcconfig
+#include "Generated.xcconfig"           // Flutter-owned; never generator-written
+#include "AgentForge.xcconfig"          // tracked synthetic; always present
+#include? "AgentForge.local.xcconfig"   // optional real override (gitignore)
+```
+
+Generator with real config writes **only** the gitignored `*.local.*`
+override files (or rewrites workspace copies of selected files under the
+same commit policy as Dart). It never depends on a missing required include.
+
+#### Commands
 
 ```bash
-# clean clone / everyday dev against synthetic defaults:
+# clean clone — zero private config; tracked synthetics suffice:
 flutter pub get && flutter analyze && flutter test
+flutter build apk --debug
+flutter build web --release
 
-# local real config (writes gitignored outputs only):
-cp config/agentforge.config.example.json config/agentforge.config.json  # edit
+# optional: refresh selected Dart file from example (no-op if already synthetic)
+dart run tool/generate_config.dart
+
+# real local/CI config (dirties selected Dart / writes *.local.*; do not commit)
+export AGENTFORGE_CONFIG=/path/to/real.json   # or edit gitignored config JSON
 dart run tool/generate_config.dart
 flutter run
 
-# CI with secret config (fail closed if missing for release jobs):
-export AGENTFORGE_CONFIG=/secrets/agentforge.config.json
-dart run tool/generate_config.dart
-flutter build apk --debug
-# association file render only:
+# association render
 dart run tool/generate_config.dart --release
 ```
 
-**Forbidden:** Dart “pub hooks” / `hooks/pre_build.dart` as a correctness
-path; overwriting a tracked synthetic file with private FQDN values (that
-dirties the worktree and invites accidental commit — review 250 finding 2).
-Optional `tool/bootstrap.sh` may wrap the copy + generate steps for DX only.
+Release CI: require `AGENTFORGE_CONFIG`, run generator, build, **never**
+upload/commit generated private selected files as artifacts that re-enter
+git.
 
 ### 5.4 Dart design — `const`, not getters (review-246 finding 3a)
 
-- `app_config.gen.dart` emits
+- `app_config.selected.dart` defines
   `const class AppConfig { static const String defaultBaseUrl = ...; ... }`
   so existing `const` call sites compile after aliasing.
 - `AppSettings.defaultBaseUrl` / `trustedHost` become `static const` aliases
@@ -249,8 +305,9 @@ Optional `tool/bootstrap.sh` may wrap the copy + generate steps for DX only.
 - `deep_link.dart`'s `kForgejoHost` becomes
   `const kForgejoHost = AppConfig.trustedHost;`.
 - **Non-secret guarantee:** schema forbids property names
-  `token`/`secret`/`password`; a unit test asserts the generated file
-  contains none of those identifiers.
+  `token`/`secret`/`password`; unit tests assert the **committed** selected
+  file only contains the synthetic origin and never `token`/`secret`/
+  `password` identifiers.
 
 ### 5.5 Origin-bound credentials (review-246 finding 3; simplified by D1)
 
@@ -284,47 +341,46 @@ Optional `tool/bootstrap.sh` may wrap the copy + generate steps for DX only.
   an AVD + custom-scheme route (CI runs the build; AVD CUJ is a manual
   gate recorded in the row).
 
-### 6.2 iOS (review 250 — real Xcode include chain)
+### 6.2 iOS (review 250 + 253 — include chain and Runner strategy)
 
 This repo today:
 
 - Target base configs are `ios/Flutter/Debug.xcconfig` and
   `ios/Flutter/Release.xcconfig`, each `#include "Generated.xcconfig"`
-  (Flutter-owned, regenerated by the Flutter tool).
+  (Flutter-owned).
 - Runner sets `PRODUCT_BUNDLE_IDENTIFIER = com.<OWNER>.agentforge` at
   **target** level; RunnerTests uses
-  `com.<OWNER>.agentforge.RunnerTests` (must stay unique).
+  `com.<OWNER>.agentforge.RunnerTests`.
 
-**Plan (do not invent a parallel “project-level overrides target” myth —
-target settings outrank project settings):**
+**Decided Runner strategy (no either/or):**
 
-1. Generator emits **`ios/Flutter/AgentForge.xcconfig`** (gitignored when
-   real; tracked **example** may ship as `AgentForge.xcconfig.example`).
-2. Patch `ios/Flutter/Debug.xcconfig` and `Release.xcconfig` to:
+1. **Keep explicit target-level** `PRODUCT_BUNDLE_IDENTIFIER` in
+   `project.pbxproj` for **both** Runner (`com.<OWNER>.agentforge`) and
+   RunnerTests (`com.<OWNER>.agentforge.RunnerTests`). Identity stays in
+   the pbxproj (D1 allow-list A3/A4b), not only in xcconfig.
+2. Tracked **`ios/Flutter/AgentForge.xcconfig`** (synthetic) holds
+   **non-identity** build settings only (e.g. host-related defines used by
+   build scripts / entitlement generation inputs)—**not** a second source
+   of truth for the app bundle id that would fight the target setting.
+3. Include chain (required files always present):
 
    ```xcconfig
    #include "Generated.xcconfig"
-   #include "AgentForge.xcconfig"   // after Flutter; may set bundle + host
+   #include "AgentForge.xcconfig"
+   #include? "AgentForge.local.xcconfig"
    ```
 
-3. In `AgentForge.xcconfig` (from config):
-   - `PRODUCT_BUNDLE_IDENTIFIER=com.<OWNER>.agentforge` for the **Runner**
-     target only via an include used by Runner’s base config, **or** keep
-     Runner target setting as today and only put host/entitlement-related
-     keys in AgentForge.xcconfig.
-4. **RunnerTests identity (required):** keep an explicit target-level
-   `PRODUCT_BUNDLE_IDENTIFIER = com.<OWNER>.agentforge.RunnerTests` (or
-   `$(PRODUCT_BUNDLE_IDENTIFIER).RunnerTests` only if the parent is
-   guaranteed to be the app id). Never remove both targets’ bundle IDs
-   such that tests inherit the app id.
-5. Associated Domains host still comes from generated entitlement input
-   derived from `forgejo.origin`.
-6. **Do not** write into `ios/Flutter/Generated.xcconfig` (Flutter-owned).
+4. Optional real overrides go only in gitignored
+   `AgentForge.local.xcconfig` (e.g. debug-only flags). Associated Domains
+   host content is generated into a **tracked template + build-time fill**
+   or a gitignored entitlement sidecar documented in CONFIGURATION.md—not
+   by overwriting Flutter `Generated.xcconfig`.
+5. **Never** write into `ios/Flutter/Generated.xcconfig`.
 
-**Verification:** for **both** Runner and RunnerTests,
-`xcodebuild -showBuildSettings -target <name>` shows the expected
-identifiers; rendered plists/AASA parse with no unresolved placeholders;
-macOS-only no-sign checks skipped on non-mac CI with a recorded reason.
+**Verification:** `xcodebuild -showBuildSettings` for **Runner** and
+**RunnerTests** shows the two distinct bundle IDs above; plists/AASA parse
+with no unresolved placeholders; macOS-only no-sign checks skipped on
+non-mac CI with a recorded reason.
 
 ## 7. Docs, handoffs, and tracked `web/`
 
@@ -384,9 +440,12 @@ literals remain is **forbidden** — intermediate PRs must stay green.
   `android/`, `ios/`, `web/`, `docs/`, plus repo-root markdown — covering
   content, paths, and filenames (case-insensitive / path-segment variants).
 - **Public/fork secondary gate** (`.github/workflows/ci.yml`): structural
-  mode only (no secret) — synthetic example in use; no raw `https://`
-  host literals in `lib/`/`test/`/`tool/`. Backstop only; privacy claim is
-  the canonical fail-closed gate **after S7**.
+  mode only (no secret). Rule: in `lib/`/`test/`/`tool/`, the **only**
+  allowed non-loopback `https://` origin literal is the **exact**
+  schema-derived synthetic origin (`https://forge.example.test`). Explicit
+  loopback fixtures (`http://127.0.0.1`, `http://localhost`) remain
+  allowed for mock-agent tests. Any other host literal fails the gate.
+  Privacy claim remains the canonical fail-closed blocklist **after S7**.
 
 ### 8.2 Allow-list format (secret file, not committed)
 
@@ -405,7 +464,7 @@ patterns live in the secret file):
 | A1 | `^android/app/build\.gradle\.kts$` | `applicationId\s*=\s*"com\.<OWNER>\.agentforge"` | D1 application id |
 | A2 | `^android/app/build\.gradle\.kts$` | (optional) comments that only restate A1 | D1 docs in Gradle |
 | A3 | `^ios/Runner\.xcodeproj/project\.pbxproj$` | `PRODUCT_BUNDLE_IDENTIFIER\s*=\s*com\.<OWNER>\.agentforge` | D1 bundle id (until fully xcconfig-only; then only Generated.xcconfig) |
-| A4 | `^ios/Flutter/AgentForge\.xcconfig(\.example)?$` | `PRODUCT_BUNDLE_IDENTIFIER=com\.<OWNER>\.agentforge` | D1 app id in AgentForge xcconfig (not Flutter Generated) |
+| A4 | `^ios/Runner\.xcodeproj/project\.pbxproj$` | `PRODUCT_BUNDLE_IDENTIFIER\s*=\s*com\.<OWNER>\.agentforge` | D1 Runner target id (decided source of truth) |
 | A4b | `^ios/Runner\.xcodeproj/project\.pbxproj$` | `PRODUCT_BUNDLE_IDENTIFIER\s*=\s*com\.<OWNER>\.agentforge\.RunnerTests` | RunnerTests unique id |
 | A5 | `^README\.md$` | canonical mirror table cell linking `github\.com/<OWNER>/agentforge` | D4 provenance |
 | A6 | `^docs/08-Implementation-Plan-and-Milestones\.md$` | D4-format evidence links only: `github\.com/<OWNER>/agentforge/commit/` | Tracker evidence |
@@ -428,7 +487,7 @@ dependencies have merged**. PR #3 is **AF-016** (planning only). Workstream
 | Step | Ledger | Scope | Depends on | CI gate (per PR) |
 |---|---|---|---|---|
 | S0 | AF-016 | **Planning only:** approved bug doc + tracker rows. No product code. | — | docs-only; format/analyze/test unchanged |
-| S1 | AF-009 | Schema + generator (build + `--release` **unit** validation) + tracked **synthetic defaults** + gitignored real gen path + `check_no_pii` tool + **fixture-only** tests. CI: generator step; guard **report-only** on real tree (not fail-closed). No source cleanup. | AF-016 | analyze/test green on clean clone (defaults); generator unit tests; fixture guard tests; `--release` unit test fails closed on empty signing |
+| S1 | AF-009 | Schema + generator; always-present **selected** Dart + tracked synthetic natives; optional gitignored `*.local.*` overrides; `check_no_pii` fixture tests; CI report-only on real tree | AF-016 | clean-clone analyze/test/APK/Web green **without** private config; generator unit tests; fixture guard; `--release` unit test fail-closed on empty signing |
 | S2 | AF-010 | Origin-bound credential store + legacy-key deletion migration + upgrade test | AF-009 | new tests green; legacy-key-deletion test passes; coverage floor held |
 | S3 | AF-011 | Wire Dart source to `AppConfig` via **const aliases**; remove `<HOST>` literals from `lib/` | AF-010 | deep-link + provider tests green with synthetic defaults; soft report clean on `lib/` |
 | S4 | AF-012 | Tests/tool swap to synthetic fixtures; rename demo tool; remove `<REALNAME>`/`<MACHINE>` | AF-011 | coverage floor; soft report clean on `test/`+`tool/` |
@@ -458,12 +517,13 @@ here.
       logged/uploaded.
 - [ ] No tracked file under the listed scopes contains redacted tokens
       except the **concrete D1/D4 allow-list** in §8.3.
-- [ ] Clean clone builds/tests against checked-in synthetic
-      `app_config.defaults.dart` with **zero** required pre-steps; release jobs
-      fail closed on missing real config; generator is explicit CI step.
+- [ ] Clean clone builds/tests/APK/Web against **tracked synthetic**
+      `app_config.selected.dart` + tracked native synthetics with **zero**
+      private config and **zero** missing includes; release jobs fail closed
+      on missing real `AGENTFORGE_CONFIG`.
 - [ ] One schema → all consumers; build vs release validation split
-      enforced; properties path = repo-root
-      `agentforge-config.properties`.
+      enforced; properties path = repo-root tracked
+      `agentforge-config.properties` (+ optional `.local` override).
 - [ ] Credentials origin-bound; legacy key deleted; upgrade test proves no
       cross-origin PAT reuse.
 - [ ] `flutter analyze --fatal-infos`, `flutter test --coverage` (floor),
@@ -512,25 +572,26 @@ here.
 | 4 | Audit not truly NUL-safe | **§2.1**: tool-based `git ls-files -z` path; withdraw Select-String NUL-safe claim |
 | 5 | Tracker claims D4 rewrite already done | **§10**: rewrite deferred to S7/AF-015; this PR only adds planning rows |
 
-## 13. Requested re-review (rev 5)
+### Review 253 (head `12c2d88`; rev 6)
 
-Please re-review exact PR tip after this revision. Answers:
+| # | Finding | Resolution in rev 6 |
+|---|---|---|
+| 1 | Dart cannot select overlay by filesystem presence | Single always-present `app_config.selected.dart` + `export`; generator rewrites it; commit policy = synthetic only (§5.3) |
+| 2 | Native clean-clone missing required files | Tracked synthetic `agentforge-config.properties` + `AgentForge.xcconfig`; optional `.local` overrides; decided Runner bundle IDs stay in pbxproj (§5.3, §6.2) |
+| 3 | Structural gate forbids synthetic HTTPS | Rule = only exact synthetic origin + loopback fixtures (§8.1 public gate) |
+| 4 | Stale AF-016 evidence SHA | Tracker points at current tip / pending merge pin (§10, docs/08) |
 
-1. **8-PR graph / AF-016:** Confirmed; planning-only; strict enforcement
-   moves to S7 (§8.0).
-2. **Legacy-key deletion:** Unchanged — delete + re-prompt.
-3. **Fail-closed gate:** Final design unchanged; **activation** only after
-   cleanup (S7), not S1.
+## 13. Requested re-review (rev 6)
 
-**Checklist for LGTM (includes review 250)**
+Please re-review exact PR tip after this revision.
 
-- [x] No live blocklist / private-host strings in this planning doc
-- [x] S1 does not enable required full-tree fail-closed gate (§8.0)
-- [x] Real gen outputs gitignored; tracked synthetic defaults only (§5.3)
-- [x] iOS include chain + RunnerTests identity specified (§6.2)
-- [x] Audit command honesty / tool path (§2.1)
-- [x] Tracker D4 rewrite deferred truthfully to S7 (§10)
-- [x] Explicit D1 allow-list selectors (§8.3)
+**Checklist for LGTM (review 253)**
+
+- [x] Concrete Dart selection mechanism (always-present selected library; no FS conditional import)
+- [x] Clean-clone Android/iOS with tracked synthetic natives + optional local overrides
+- [x] Decided Runner vs RunnerTests bundle-id strategy (explicit pbxproj for both)
+- [x] Public structural gate allows exact synthetic origin only
+- [x] AF-016 evidence not pinned to an obsolete rev-4 SHA
 
 On LGTM: merge AF-016 → fast-forward GitHub mirror → branch AF-009 from
 fresh `origin/main`.

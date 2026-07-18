@@ -82,7 +82,7 @@ must update its row and this document's changelog.
 | AF-006 | Design-handoff implementation and WCAG 2.1 AA pass | **PLANNED** | AF-003 information architecture | — |
 | AF-007 | CI/release hardening: format, coverage floor, Android build, pinned toolchain | **SHIPPED IN AF-001** | Forgejo run 12 green | [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1) |
 | AF-008 | Public-code/private-runtime licensing and data-boundary decision | **DECISION NEEDED** | Owner selects license/distribution model | — |
-| AF-016 | PII redaction S0: **planning only** — approved bug doc + tracker rows (umbrella: [docs/11-PII-Redaction.md](11-PII-Redaction.md)) | **IN REVIEW** | — | [Forgejo #3 @ 4051a26](https://github.com/avidullu/agentforge/commit/4051a2650500f98b73d6bbffbb02df25a0e4b72f) |
+| AF-016 | PII redaction S0: **planning only** — approved bug doc + tracker rows (umbrella: [docs/11-PII-Redaction.md](11-PII-Redaction.md)) | **IN REVIEW** | — | Forgejo #3 @ tip of `af-009-pii-redaction-bug` (update SHA on merge) |
 | AF-009 | PII redaction S1: schema + generator (build + `--release` unit validation) + tracked synthetic **defaults** + gitignored real gen + `check_no_pii` fixture tests; CI guard **report-only** on real tree (fail-closed only at AF-015) | **PLANNED** | AF-016 | — |
 | AF-010 | PII redaction S2: origin-bound credential store + legacy-key deletion migration + upgrade test (app id unchanged ⇒ no sandbox issue) | **PLANNED** | AF-009 | — |
 | AF-011 | PII redaction S3: wire Dart source to generated **const** `AppConfig` (`deep_link.dart`, `app_settings.dart`, UI strings, providers); remove host literals from `lib/` | **PLANNED** | AF-010 | — |
@@ -156,6 +156,12 @@ and the following statements are factually true:
 6. Apply the component/state/accessibility plan in the design review.
 
 ## Changelog
+
+- **2026-07-18 — AF-016 / PR #3 rev 6 (review 253):** Always-present
+  `app_config.selected.dart` (no FS conditional import); tracked synthetic
+  natives + optional `.local` overrides; decided pbxproj Runner/RunnerTests
+  IDs; structural gate allows only synthetic origin; AF-016 evidence not
+  pinned to obsolete rev-4 SHA. See [docs/11-PII-Redaction.md](11-PII-Redaction.md).
 
 - **2026-07-18 — AF-016 / PR #3 rev 5 (review 250):** Stage fail-closed
   blocklist to S7 only; tracked synthetic defaults + gitignored real gen;
