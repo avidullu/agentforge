@@ -7,6 +7,7 @@ import '../../core/forgejo/forgejo_providers.dart';
 import '../../core/mcp/mcp_models.dart';
 import '../../core/mcp/mcp_providers.dart';
 import '../../core/theme/color_contrast.dart';
+import '../../core/theme/widgets/status_badge.dart';
 
 /// Prototype agent plan, rationale summary, and feedback for this PR.
 class AgentContextPanel extends ConsumerWidget {
@@ -175,12 +176,7 @@ class _AgentContextCardState extends ConsumerState<_AgentContextCard> {
                     style: theme.textTheme.titleSmall,
                   ),
                 ),
-                if (c.status.isNotEmpty)
-                  Chip(
-                    label: Text(c.status, style: const TextStyle(fontSize: 11)),
-                    visualDensity: VisualDensity.compact,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
+                if (c.status.isNotEmpty) StatusBadge(label: c.status),
               ],
             ),
             if (c.error != null) ...[

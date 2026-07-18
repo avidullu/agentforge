@@ -7,6 +7,7 @@ import '../../core/forgejo/forgejo_client.dart';
 import '../../core/forgejo/forgejo_providers.dart';
 import '../../core/forgejo/models.dart';
 import '../../core/mcp/mcp_providers.dart';
+import '../../core/theme/widgets/error_state.dart';
 import 'agent_context_panel.dart';
 
 class PrDetailScreen extends ConsumerStatefulWidget {
@@ -150,7 +151,8 @@ class _PrDetailScreenState extends ConsumerState<PrDetailScreen> {
       ),
       body: detailAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => _ErrorPane(
+        error: (e, _) => ErrorState(
+          title: 'Could not load PR',
           message: forgejoErrorMessage(e),
           onRetry: () => ref.invalidate(pullRequestDetailProvider(_key)),
           fallback: '${widget.owner}/${widget.repo} #${widget.number}',
@@ -450,40 +452,6 @@ class _ReviewTile extends StatelessWidget {
             ],
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ErrorPane extends StatelessWidget {
-  const _ErrorPane({
-    required this.message,
-    required this.onRetry,
-    required this.fallback,
-  });
-
-  final String message;
-  final VoidCallback onRetry;
-  final String fallback;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Could not load PR',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(message),
-          const SizedBox(height: 16),
-          FilledButton(onPressed: onRetry, child: const Text('Retry')),
-          const SizedBox(height: 16),
-          Text(fallback, style: Theme.of(context).textTheme.bodySmall),
-        ],
       ),
     );
   }
