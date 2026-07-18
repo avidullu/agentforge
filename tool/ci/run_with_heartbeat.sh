@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# Run a long CI command with START/HEARTBEAT/PASS/FAIL logs.
+#
+# Intentionally simple: foreground execution only. Earlier versions used
+# setsid/process groups for cancellation cleanup; that failed on the Forgejo
+# runner ~1m after Flutter setup (quality red with no product steps). Prefer
+# a portable wrapper that cannot exit before the wrapped command runs.
 set -Eeuo pipefail
 
 usage() {
@@ -21,116 +27,39 @@ timestamp() {
 }
 
 started_at=$SECONDS
-child_pid=''
-child_pgid=''
 heartbeat_pid=''
 
-child_is_alive() {
-  if [[ -n $child_pgid ]]; then
-    kill -0 -- "-$child_pgid" 2>/dev/null
-  else
-    kill -0 "$child_pid" 2>/dev/null
-  fi
-}
-
-signal_child() {
-  local signal=$1
-  if [[ -n $child_pgid ]]; then
-    kill -"$signal" -- "-$child_pgid" 2>/dev/null || true
-  else
-    kill -"$signal" "$child_pid" 2>/dev/null || true
-  fi
-}
-
-terminate_child() {
-  [[ -n $child_pid ]] || return 0
-  signal_child TERM
-  for _ in $(seq 1 20); do
-    child_is_alive || break
-    sleep 0.25
-  done
-  if child_is_alive; then
-    printf '[%s] KILL %s after 5s cancellation grace\n' \
-      "$(timestamp)" "$label" >&2
-    signal_child KILL
-  fi
-  wait "$child_pid" 2>/dev/null || true
-  child_pid=''
-  child_pgid=''
-}
-
 cleanup() {
-  if [[ -n $heartbeat_pid ]]; then
+  if [[ -n ${heartbeat_pid:-} ]]; then
     kill "$heartbeat_pid" 2>/dev/null || true
     wait "$heartbeat_pid" 2>/dev/null || true
+    heartbeat_pid=''
   fi
-  if [[ -n $child_pid ]]; then
-    terminate_child
-  fi
-}
-
-on_signal() {
-  local signal=$1
-  printf '[%s] CANCEL %s signal=%s elapsed=%ss\n' \
-    "$(timestamp)" "$label" "$signal" "$((SECONDS - started_at))" >&2
-  exit 130
 }
 
 trap cleanup EXIT
-trap 'on_signal INT' INT
-trap 'on_signal TERM' TERM
 
 printf '[%s] START %s\n' "$(timestamp)" "$label"
 printf '[%s] COMMAND' "$(timestamp)"
 printf ' %q' "$@"
 printf '\n'
 
-if command -v setsid >/dev/null 2>&1; then
-  # A dedicated session lets cancellation terminate Flutter/Gradle/Java
-  # descendants, not merely the immediate wrapper process.
-  #
-  # util-linux supports `setsid --wait` (or `-w`). BusyBox / older setsid
-  # reject unknown flags and exit immediately — that was failing Forgejo
-  # quality ~1m after Flutter setup on the first heartbeat-wrapped step.
-  # Probe once; fall back to plain `setsid` which execs into the command.
-  if setsid --wait true >/dev/null 2>&1; then
-    setsid --wait "$@" &
-  else
-    printf '[%s] WARN setsid --wait unavailable; using plain setsid\n' \
-      "$(timestamp)" >&2
-    setsid "$@" &
-  fi
-  child_pid=$!
-  child_pgid=$child_pid
-else
-  printf '[%s] WARN process-group isolation unavailable; using child PID\n' \
-    "$(timestamp)" >&2
-  "$@" &
-  child_pid=$!
-fi
-
 (
-  while kill -0 "$child_pid" 2>/dev/null; do
+  while true; do
     sleep "$heartbeat_seconds"
-    if kill -0 "$child_pid" 2>/dev/null; then
-      printf '[%s] HEARTBEAT %s elapsed=%ss\n' \
-        "$(timestamp)" "$label" "$((SECONDS - started_at))"
-    fi
+    printf '[%s] HEARTBEAT %s elapsed=%ss\n' \
+      "$(timestamp)" "$label" "$((SECONDS - started_at))"
   done
 ) &
 heartbeat_pid=$!
 
-if wait "$child_pid"; then
-  status=0
-else
-  status=$?
-fi
-child_pid=''
-child_pgid=''
+set +e
+"$@"
+status=$?
+set -e
 
-kill "$heartbeat_pid" 2>/dev/null || true
-wait "$heartbeat_pid" 2>/dev/null || true
-heartbeat_pid=''
+cleanup
+trap - EXIT
 
 if [[ $status -eq 0 ]]; then
   printf '[%s] PASS %s elapsed=%ss\n' \
