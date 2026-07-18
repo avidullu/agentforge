@@ -82,13 +82,23 @@ must update its row and this document's changelog.
 | AF-006 | Design-handoff implementation and WCAG 2.1 AA pass | **PLANNED** | AF-003 information architecture | — |
 | AF-007 | CI/release hardening: format, coverage floor, Android build, pinned toolchain | **SHIPPED IN AF-001** | Forgejo run 12 green | [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1) |
 | AF-008 | Public-code/private-runtime licensing and data-boundary decision | **DECISION NEEDED** | Owner selects license/distribution model | — |
-| AF-009 | PII redaction S1: one versioned config schema + generator + validator + structural `check_no_pii` guard scaffold (umbrella bug: [docs/11-PII-Redaction.md](11-PII-Redaction.md)) | **PLANNED** | PR #3 review LGTM | [Forgejo #3](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/3) |
-| AF-010 | PII redaction S2: origin-bound credential store + legacy-token migration + upgrade test | **PLANNED** | AF-009 | — |
-| AF-011 | PII redaction S3: wire Dart source to generated config (`deep_link.dart`, `app_settings.dart`, UI strings, providers) | **PLANNED** | AF-009 | — |
-| AF-012 | PII redaction S4: tests/tool swap to synthetic fixtures; rename demo tool | **PLANNED** | AF-011 | — |
-| AF-013 | PII redaction S5: Android fixed neutral namespace + stable release id + debug suffix + manifest placeholder + installed-AVD deep-link CUJ | **PLANNED** | AF-009 | — |
-| AF-014 | PII redaction S6: iOS `Generated.xcconfig` + entitlement host + rendered plist/AASA validation + `-showBuildSettings` (macOS no-sign) | **PLANNED** | AF-009 | — |
-| AF-015 | PII redaction S7: docs/handoff redaction + `docs/CONFIGURATION.md` + well-known templates/render + CI guard wire-up | **PLANNED** | AF-003, AF-011, AF-013, AF-014 | — |
+| AF-016 | PII redaction S0: **planning PR** — approved bug doc + tracker rows + stale-PR-description fix (umbrella bug: [docs/11-PII-Redaction.md](11-PII-Redaction.md)) | **IN REVIEW** | — | [Forgejo #3](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/3) |
+| AF-009 | PII redaction S1: one versioned config schema + generator (build- and release-validated) + pub-hook bootstrap + checked-in synthetic `app_config.gen.dart` + report-only structural `check_no_pii` scaffold + canonical CI blocklist gate (fail-closed) | **PLANNED** | AF-016 | — |
+| AF-010 | PII redaction S2: origin-bound credential store + legacy-key deletion migration + upgrade test (app id unchanged ⇒ no sandbox issue) | **PLANNED** | AF-009 | — |
+| AF-011 | PII redaction S3: wire Dart source to generated **const** `AppConfig` (`deep_link.dart`, `app_settings.dart`, UI strings, providers); remove host literals from `lib/` | **PLANNED** | AF-010 | — |
+| AF-012 | PII redaction S4: tests/tool swap to synthetic fixtures; rename demo tool; remove display name / machine hint | **PLANNED** | AF-011 | — |
+| AF-013 | PII redaction S5: Android neutral namespace `dev.agentforge.app` + Kotlin source-path move; **kept** `applicationId`; manifest host placeholder; AVD custom-scheme CUJ (verified links stay under AF-002) | **PLANNED** | AF-011 | — |
+| AF-014 | PII redaction S6: iOS remove per-target bundle-id overrides; entitlement host from config; rendered plist/AASA validation; `-showBuildSettings` (macOS no-sign) | **PLANNED** | AF-011 | — |
+| AF-015 | PII redaction S7: docs/handoff redaction + Forgejo-PR-link rewrite (SHA + GitHub mirror) + `docs/CONFIGURATION.md` + well-known templates/render + tracked-`web/` sweep | **PLANNED** | AF-010, AF-012, AF-013, AF-014 | — |
+
+> **PII redaction dependency note (rev 3).** Each branch starts from a
+> fresh `origin/main` after its dependencies merge (topological, not
+> sequential). Verified App-Link / Universal-Link gates remain under
+> AF-002 (release signing), not in this workstream. Owner-locked crux
+> decisions: keep `applicationId` / bundle id; neutralize Kotlin source
+> path; redact the private Tailscale FQDN; rewrite Forgejo PR evidence as
+> PR-number + short-SHA + GitHub-mirror link. See
+> [docs/11-PII-Redaction.md](11-PII-Redaction.md) §1.1 and §9.
 
 ## Definition of Done
 
@@ -147,20 +157,23 @@ and the following statements are factually true:
 
 ## Changelog
 
-- **2026-07-18 — AF-009 BUG REVISED (rev 2, addressing PR #3 review):** The
-  PR #3 review (commit-pinned at head `3370b42`) requested changes with six
-  findings: self-exempting guard, four drifting config channels, PAT reuse
-  across origins, Android namespace/launch break, unimplementable Dart
-  config, and tracker/audit/verification errors. Revision 2 of
-  [`docs/11-PII-Redaction.md`](11-PII-Redaction.md) replaces the four-channel
-  model with **one versioned config schema + generator + validator**, makes
-  the credential store **origin-bound**, moves the PII blocklist **outside
-  the public tree**, narrows the goal to current-tree/default sanitization,
-  corrects the Android namespace design, and accepts all four review
-  decisions (canonical repo reference allow-listed; stable application id;
-  history rewrite deferred; schema-backed approach). The workstream is now
-  split into ledger rows **AF-009…AF-015** (one per PR, sequential deps).
-  Awaiting re-review LGTM before S1 starts.
+- **2026-07-18 — AF-009 BUG REVISED (rev 3, addressing PR #3 second-pass
+  review id 246):** The second-pass review at head `9334af0` requested
+  changes with eight findings (staged guard cannot stay green; no
+  clean-clone bootstrap; generator graph misses const/native consumers +
+  path errors; canonical CI fail-open; origin/association validation
+  inconsistent; release/debug identity + credential migration incomplete;
+  ledger/dependency graph wrong; audit not reproducible). Revision 3 of
+  [`docs/11-PII-Redaction.md`](11-PII-Redaction.md) is grounded in four
+  owner-locked crux decisions: **keep** the `applicationId` / bundle id
+  (collapses finding 6); **neutralize** the Kotlin source path with a
+  matching Gradle namespace (path ≠ id); **redact the private Tailscale
+  FQDN** (strictest option); rewrite Forgejo PR evidence as PR-number +
+  short-SHA + GitHub-mirror link. It also splits build-safe vs release
+  validation, makes the canonical CI blocklist gate fail-closed, provides
+  a NUL-safe reproducible audit (24 tracked files on `origin/main` @
+  `37732b4`), and re-derives the workstream as a topological graph of
+  **8 PRs** (AF-016 planning + AF-009…AF-015). Awaiting third-pass LGTM.
 - **2026-07-18 — AF-001 / AF-007 SHIPPED:** Replaced aspirational M0-M5
   completion claims with
   verified statuses and gates. Added the design audit, deep-link/app-links
