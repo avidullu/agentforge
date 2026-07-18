@@ -37,6 +37,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Generate config (tracked synthetic)
+        run: dart run tool/generate_config.dart
+
       - name: Analyze
         run: flutter analyze --fatal-infos
 
@@ -48,6 +51,10 @@ jobs:
 
       - name: Enforce coverage floor
         run: dart run tool/check_coverage.dart coverage/lcov.info 29
+
+      - name: PII guard (report-only on real tree; never fail-closed here)
+        run: dart run tool/check_no_pii.dart --mode=report --scope=tracked
+        # Fail-closed full-tree blocklist is AF-015 / S7 only (docs/11 §8.0).
 
       - name: Build Android debug APK
         run: flutter build apk --debug

@@ -84,8 +84,8 @@ update its owning tracker row and changelog.
 | AF-006 | Mobile design ingestion and WCAG 2.1 AA implementation (multi-PR) | **IN PROGRESS — INTAKE** | AF-003/004/005 contracts; AF-008 asset provenance | [AF-006 tracker](projects/AF-006-Mobile-Design-Ingestion.md) |
 | AF-007 | CI/release hardening: format, coverage floor, Android build, pinned toolchain | **SHIPPED IN AF-001** | Forgejo run 12 green | [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1) |
 | AF-008 | Public-code/private-runtime licensing and data-boundary decision | **DECISION NEEDED** | Owner selects license/distribution model | — |
-| AF-016 | PII redaction S0: **planning only** — approved bug doc + tracker rows (umbrella: [docs/11-PII-Redaction.md](11-PII-Redaction.md)) | **IN REVIEW** | — | [Forgejo #3](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/3) · [`7481d77`](https://github.com/avidullu/agentforge/commit/7481d77842f9ba692fdd201eaf76e33c4468421e) |
-| AF-009 | PII redaction S1: schema + generator (build + `--release` unit validation) + tracked synthetic **defaults** + gitignored real gen + `check_no_pii` fixture tests; CI guard **report-only** on real tree (fail-closed only at AF-015) | **PLANNED** | AF-016 | — |
+| AF-016 | PII redaction S0: **planning only** — approved bug doc + tracker rows (umbrella: [docs/11-PII-Redaction.md](11-PII-Redaction.md)) | **SHIPPED** | Merged 2026-07-18 as `4bb48ca` | [Forgejo #3](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/3) · [`7481d77`](https://github.com/avidullu/agentforge/commit/7481d77842f9ba692fdd201eaf76e33c4468421e) · merge [`4bb48ca`](https://github.com/avidullu/agentforge/commit/4bb48caa15965cfaef6c012baaa53bdcbdf7d1d0) |
+| AF-009 | PII redaction S1: schema + generator (build + `--release` unit validation) + tracked synthetic **defaults** + gitignored real gen + `check_no_pii` fixture tests; CI guard **report-only** on real tree (fail-closed only at AF-015) | **IN REVIEW** | AF-016 | branch `af-009-s1-config-bootstrap` (PR pending) |
 | AF-010 | PII redaction S2: origin-bound credential store + legacy-key deletion migration + upgrade test (app id unchanged ⇒ no sandbox issue) | **PLANNED** | AF-009 | — |
 | AF-011 | PII redaction S3: wire Dart source to generated **const** `AppConfig` (`deep_link.dart`, `app_settings.dart`, UI strings, providers); remove host literals from `lib/` | **PLANNED** | AF-010 | — |
 | AF-012 | PII redaction S4: tests/tool swap to synthetic fixtures; rename demo tool; remove display name / machine hint | **PLANNED** | AF-011 | — |
@@ -161,6 +161,19 @@ and the following statements are factually true:
    endpoint, analytics and device work.
 
 ## Changelog
+
+- **2026-07-18 — AF-009 / S1 IN REVIEW:** Schema + `tool/generate_config.dart`
+  (build-safe + `--release` unit fail-closed on empty signing); always-present
+  `lib/core/config/generated/app_config.selected.dart` (synthetic in git) +
+  export-only `app_config.dart`; tracked synthetic
+  `agentforge-config.properties` and `ios/Flutter/AgentForge.xcconfig` with
+  gitignored `*.local.*` / `Runner.entitlements.local` only for real values;
+  `tool/check_no_pii.dart` fixture unit tests; CI runs generator + report-only
+  PII guard (not fail-closed full-tree — that remains AF-015). Does **not**
+  redact `lib/` host literals (AF-011) or move Android/iOS identity (AF-013/014).
+
+- **2026-07-18 — AF-016 SHIPPED:** Planning docs merged via Forgejo #3 as
+  `4bb48ca` (tip before merge `ba616f5` / plan rev 8 `3eeddcd`).
 
 - **2026-07-18 — AF-016 / PR #3 rev 8 (final-pass review 258):** `docs/11`
   Evidence is D4-safe (no private host URL); header cleaned to rev 8; AF-016
