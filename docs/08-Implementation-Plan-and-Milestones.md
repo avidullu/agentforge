@@ -85,7 +85,7 @@ update its owning tracker row and changelog.
 | AF-007 | CI/release hardening: format, coverage floor, Android build, pinned toolchain | **SHIPPED IN AF-001** | Forgejo run 12 green | [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1) |
 | AF-008 | Public-code/private-runtime licensing and data-boundary decision | **DECISION NEEDED** | Owner selects license/distribution model | — |
 | AF-016 | PII redaction S0: **planning only** — approved bug doc + tracker rows (umbrella: [docs/11-PII-Redaction.md](11-PII-Redaction.md)) | **SHIPPED** | Merged 2026-07-18 as `4bb48ca` | [Forgejo #3](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/3) · [`7481d77`](https://github.com/avidullu/agentforge/commit/7481d77842f9ba692fdd201eaf76e33c4468421e) · merge [`4bb48ca`](https://github.com/avidullu/agentforge/commit/4bb48caa15965cfaef6c012baaa53bdcbdf7d1d0) |
-| AF-009 | PII redaction S1: schema + generator (build + `--release` unit validation) + tracked synthetic **defaults** + gitignored real gen + `check_no_pii` fixture tests; CI guard **report-only** on real tree (fail-closed only at AF-015) | **IN REVIEW** | AF-016 | [Forgejo #7](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/7) · [`a652878`](https://github.com/avidullu/agentforge/commit/a6528785173bf2321e3bf1916b4110c1e18ec9e3) |
+| AF-009 | PII redaction S1: schema + generator (build + `--release` unit validation) + tracked synthetic **defaults** + gitignored real gen + `check_no_pii` fixture tests; CI guard **report-only** on real tree (fail-closed only at AF-015) | **SHIPPED** | AF-016; merged 2026-07-18; exact-head MSI suite green | [Forgejo #7](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/7) · tip [`543b005`](https://github.com/avidullu/agentforge/commit/543b005e4cbb535b36d20caf1a7412cb5a65df85) · merge [`93e06d7`](https://github.com/avidullu/agentforge/commit/93e06d79fd78762b8bfa4a8dda45891636730a41) |
 | AF-010 | PII redaction S2: origin-bound credential store + legacy-key deletion migration + upgrade test (app id unchanged ⇒ no sandbox issue) | **PLANNED** | AF-009 | — |
 | AF-011 | PII redaction S3: wire Dart source to generated **const** `AppConfig` (`deep_link.dart`, `app_settings.dart`, UI strings, providers); remove host literals from `lib/` | **PLANNED** | AF-010 | — |
 | AF-012 | PII redaction S4: tests/tool swap to synthetic fixtures; rename demo tool; remove display name / machine hint | **PLANNED** | AF-011 | — |
@@ -127,8 +127,8 @@ and the following statements are factually true:
   and Android build; iOS builds run on a signed macOS path.
 - [ ] The runtime privacy boundary, public repository status, telemetry/font
   behavior, backup policy, and license are documented consistently.
-- [x] Forgejo `main` and the GitHub mirror are synchronized after the shipped
-  merge (verified at `7d5cb360`).
+- [x] Forgejo `main` and the GitHub mirror are synchronized after shipped
+  merges (AF-009 parity verified at `93e06d7`).
 
 ## Design and protocol decisions
 
@@ -162,7 +162,14 @@ and the following statements are factually true:
 
 ## Changelog
 
-- **2026-07-18 — AF-009 / S1 IN REVIEW:** Schema + `tool/generate_config.dart`
+- **2026-07-18 — AF-009 / S1 SHIPPED:** Merged Forgejo #7 as `93e06d7`
+  from verified tip `543b005`; Forgejo and GitHub `main` were synchronized.
+  The exact-head AVIS-MSI gate passed generator byte-idempotence, formatting,
+  analysis, 76 tests, 35.92% line coverage (29% floor), report-mode PII scan,
+  debug APK, release Web, and `git diff --check`. Forgejo run 49 was pending on
+  the restarting/capacity-constrained runner, so the documented MSI
+  infrastructure waiver was applied; no repository failure was waived.
+  Scope shipped: schema + `tool/generate_config.dart`
   (build-safe + `--release` unit fail-closed on empty signing); always-present
   `lib/core/config/generated/app_config.selected.dart` (synthetic in git) +
   export-only `app_config.dart`; tracked synthetic
