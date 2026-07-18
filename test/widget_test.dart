@@ -35,7 +35,7 @@ void main() {
       ProviderScope(
         overrides: [
           initialLocationProvider.overrideWithValue(
-            '/Khelsutra/badminton-highlight-indexer/pulls/611',
+            '/owner/demo-repo/pulls/611',
           ),
           settingsProvider.overrideWith(
             (ref) async => const AppSettings(
@@ -49,10 +49,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     // Unconfigured: AppBar + body both show owner/repo/number
-    expect(
-      find.textContaining('Khelsutra/badminton-highlight-indexer #611'),
-      findsWidgets,
-    );
+    expect(find.textContaining('owner/demo-repo #611'), findsWidgets);
     expect(find.textContaining('Connect Forgejo in Settings'), findsOneWidget);
   });
 }

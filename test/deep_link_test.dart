@@ -13,8 +13,8 @@ void main() {
     });
 
     test('maps https Forgejo pull (singular) URL', () {
-      final uri = Uri.parse('$origin/avidullu/agentforge/pull/3');
-      expect(deepLinkToLocation(uri), '/avidullu/agentforge/pull/3');
+      final uri = Uri.parse('$origin/owner/demo-repo/pull/3');
+      expect(deepLinkToLocation(uri), '/owner/demo-repo/pull/3');
     });
 
     test('strips trailing slash', () {
