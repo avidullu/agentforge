@@ -171,6 +171,12 @@ gates.
 
 ## Changelog
 
+- **2026-07-18 — Nightly twice-daily (Forgejo #18):** Nightly android-smoke now
+  runs at 06:30 UTC (~12:00 IST) and 18:30 UTC (~00:00 IST) on the avis-pbook
+  Forgejo act_runner. Each run uploads a `nightly-result-*` artifact. Monitor at:
+  https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/actions?workflow=nightly.yml
+  Tracking issue: Forgejo #17.
+
 - **2026-07-18 — AF-018-A SHIPPED:** Merged Forgejo #13 as `8dfff7c` (tip `76ecdd8`;
   includes #16). PR CI: quality + Web build-smoke only. Android SDK install +
   APK + lint on Nightly (`nightly.yml`). Local debug: `tool/ci/run_local_ci.sh`.

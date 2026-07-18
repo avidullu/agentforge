@@ -1,14 +1,33 @@
 name: Nightly
 
-# Android SDK install + debug APK + lint are too expensive and redundant for
-# every PR/push CI on a capacity-constrained self-hosted runner. They run here
-# on a schedule (and on-demand via workflow_dispatch).
+# ── AgentForge Nightly Android Smoke ──────────────────────────────────
 #
-# See Forgejo issue filed with this change (AF-018 Android CI policy).
+# Runs twice daily on the avis-pbook Forgejo act_runner (ubuntu-latest):
+#   06:30 UTC (~12:00 IST midday)
+#   18:30 UTC (~00:00 IST midnight)
+#
+# Also triggerable on-demand via workflow_dispatch.
+#
+# What it does:
+#   1. Install + validate Android SDK packages
+#   2. Build debug APK
+#   3. Run lintDebug
+#
+# How to check results:
+#   https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/actions
+#   → filter by "Nightly" workflow
+#   Each run uploads a nightly-result.txt artifact with the full log.
+#
+# Policy: Android SDK/APK/lint are TOO EXPENSIVE for every PR/push CI
+# on a capacity-constrained self-hosted runner. They run HERE only.
+# PR CI is quality + Web build-smoke only.
+# See: Forgejo issue #17 (AF-018 Android CI policy).
 
 on:
   schedule:
-    # 18:30 UTC ≈ 00:00 IST next day
+    # 06:30 UTC ~ 12:00 IST (midday)
+    - cron: '30 6 * * *'
+    # 18:30 UTC ~ 00:00 IST (midnight)
     - cron: '30 18 * * *'
   workflow_dispatch:
 
@@ -62,4 +81,31 @@ jobs:
 
       # Full Android path: install/validate packages + debug APK + lintDebug.
       - name: Android product steps (local harness)
+        id: android-smoke
         run: bash tool/ci/run_local_ci.sh --lane android-smoke
+
+      # ── Visibility: produce a summary artifact for each run ─────────
+      # Downloadable from the Actions run page. Issue #17 tracks health.
+      - name: Write run summary
+        if: always()
+        run: |
+          {
+            echo "AgentForge Nightly android-smoke"
+            echo "================================="
+            echo "Run:    ${{ github.run_id }}"
+            echo "SHA:    ${{ github.sha }}"
+            echo "Ref:    ${{ github.ref }}"
+            echo "Time:   $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "Status: ${{ job.status }}"
+            echo ""
+            echo "Issue:  https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/issues/17"
+            echo "Logs:   https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/actions/runs/${{ github.run_id }}"
+          } > nightly-result.txt
+
+      - name: Upload run summary artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: nightly-result-${{ github.run_id }}-${{ github.run_attempt }}
+          path: nightly-result.txt
+          retention-days: 90
