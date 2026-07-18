@@ -58,6 +58,7 @@ not a remote/tailnet server.
 
 ## Start here
 
+- [OpenAI Build Week submission tracker](docs/projects/AF-017-OpenAI-Build-Week-Submission.md)
 - [Canonical tracker](docs/08-Implementation-Plan-and-Milestones.md)
 - [Mobile design handoff review](docs/10-Mobile-Design-Handoff-Review.md)
 - [Agent endpoint/MCP target](docs/AGENT_MCP_CONTRACT.md)

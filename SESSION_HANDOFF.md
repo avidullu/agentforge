@@ -11,6 +11,10 @@ checked-in copy is a repository-visible checkpoint.
 
 ## You are here
 
+- AF-017 OpenAI Build Week submission work is **IN PROGRESS**. Its canonical
+  tracker is `docs/projects/AF-017-OpenAI-Build-Week-Submission.md`; the hard
+  deadline is 2026-07-22 05:30 IST. Owner registration, license,
+  GPT-5.6/`/feedback`, hosting, and YouTube actions remain open.
 - Forgejo PR #7 (AF-009 / PII-redaction S1) merged as `93e06d7` from verified
   tip `543b005`; GitHub `main` was fast-forwarded to the same merge SHA.
 - All review findings 261 and 263–266 were resolved. The final AVIS-MSI suite
@@ -25,12 +29,14 @@ checked-in copy is a repository-visible checkpoint.
 
 ## Next steps / open threads
 
-1. Start AF-010 only from a fresh `origin/main`: origin-bound credential store,
+1. Follow AF-017's deadline-critical ledger: merge the tracker, resolve owner
+   gates, then build the judge-safe synthetic demo and coherent golden path.
+2. Start AF-010 only from a fresh `origin/main`: origin-bound credential store,
    legacy-key deletion migration, and upgrade tests.
-2. Execute only unblocked rows in the AF-006 mobile-design tracker.
-3. Resolve AF-008's license/distribution decision and AF-002's signing and
+3. Execute only unblocked rows in the AF-006 mobile-design tracker.
+4. Resolve AF-008's license/distribution decision and AF-002's signing and
    association-file gates before claiming verified-link completion.
-4. Continue treating AVIS-MSI as the primary local approval environment while
+5. Continue treating AVIS-MSI as the primary local approval environment while
    the avis-pbook runner is being upgraded.
 
 ## Ramp-up kit
@@ -38,6 +44,7 @@ checked-in copy is a repository-visible checkpoint.
 Read these after `git pull --ff-only`:
 
 - `docs/08-Implementation-Plan-and-Milestones.md` — canonical project ledger.
+- `docs/projects/AF-017-OpenAI-Build-Week-Submission.md` — submission tracker.
 - `docs/11-PII-Redaction.md` — AF-009…AF-015 architecture and gates.
 - `docs/projects/AF-006-Mobile-Design-Ingestion.md` — design-ingestion tracker.
 - `.github/workflows/ci.yml` — required repository verification suite.
