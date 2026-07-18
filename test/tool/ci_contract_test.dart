@@ -22,6 +22,7 @@ void main() {
       contains('AGENTFORGE_CONFIG: config/agentforge.config.example.json'),
     );
     expect(workflow, contains('persist-credentials: false'));
+    expect(workflow, contains('bash tool/ci/setup_flutter.sh'));
     expect(workflow, contains('name: required'));
     expect(workflow, contains('needs: [quality, build_smoke]'));
     // Product steps must go through the local harness (single source of truth).
@@ -42,6 +43,7 @@ void main() {
     ).readAsStringSync();
     expect(harness, contains('run_with_heartbeat.sh'));
     expect(harness, contains('test_heartbeat.sh'));
+    expect(harness, contains('setup_flutter.sh'));
     expect(harness, contains('android-smoke'));
     expect(harness, contains('check_diff_coverage.dart'));
 
@@ -49,11 +51,19 @@ void main() {
       '${repoRoot.path}/.github/workflows/nightly.yml',
     ).readAsStringSync();
     expect(nightly, contains('name: Nightly'));
+    expect(nightly, contains('bash tool/ci/setup_flutter.sh'));
     expect(
       nightly,
       contains('bash tool/ci/run_local_ci.sh --lane android-smoke'),
     );
     expect(nightly, contains('setup-android'));
+
+    final flutterBootstrap = File(
+      '${repoRoot.path}/tool/ci/setup_flutter.sh',
+    ).readAsStringSync();
+    expect(flutterBootstrap, contains('FLUTTER_VERSION:=3.44.6'));
+    expect(flutterBootstrap, contains('sha256sum --check --status'));
+    expect(flutterBootstrap, contains('GITHUB_PATH'));
   });
 
   test('heartbeat wrapper discovers the real setsid process group', () {

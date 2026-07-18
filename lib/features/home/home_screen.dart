@@ -8,6 +8,8 @@ import '../../core/agents/agent_providers.dart';
 import '../../core/forgejo/forgejo_client.dart';
 import '../../core/forgejo/forgejo_providers.dart';
 import '../../core/forgejo/models.dart';
+import '../../core/theme/widgets/empty_state.dart';
+import '../../core/theme/widgets/status_badge.dart';
 import '../../core/settings/settings_providers.dart';
 
 /// Home list filter.
@@ -56,7 +58,7 @@ class HomeScreen extends ConsumerWidget {
       ),
       body: settingsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => _MessageBody(
+        error: (e, _) => EmptyState(
           title: 'Could not load settings',
           body: e.toString(),
           actionLabel: 'Open Settings',
@@ -64,7 +66,7 @@ class HomeScreen extends ConsumerWidget {
         ),
         data: (settings) {
           if (!settings.isConfigured) {
-            return _MessageBody(
+            return EmptyState(
               title: 'Connect Forgejo',
               body:
                   'Add your Forgejo instance URL and a personal access token '
@@ -92,7 +94,7 @@ class _PullRequestList extends ConsumerWidget {
 
     return prs.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => _MessageBody(
+      error: (e, _) => EmptyState(
         title: 'Failed to load PRs',
         body: forgejoErrorMessage(e),
         actionLabel: 'Retry',
@@ -162,7 +164,7 @@ class _PullRequestList extends ConsumerWidget {
               ),
             Expanded(
               child: filtered.isEmpty
-                  ? _MessageBody(
+                  ? EmptyState(
                       title:
                           filter == PrListFilter.withAgents &&
                               activityIncomplete
@@ -239,14 +241,10 @@ class _PrTile extends ConsumerWidget {
               runSpacing: 4,
               children: [
                 for (final a in agents)
-                  Chip(
-                    visualDensity: VisualDensity.compact,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    label: Text(a.name, style: const TextStyle(fontSize: 11)),
-                    avatar: CircleAvatar(
-                      backgroundColor: Color(a.colorArgb),
-                      radius: 8,
-                    ),
+                  StatusBadge(
+                    label: a.name,
+                    avatarColor: Color(a.colorArgb),
+                    avatarLabel: a.name[0].toUpperCase(),
                   ),
               ],
             ),
@@ -255,48 +253,6 @@ class _PrTile extends ConsumerWidget {
       ),
       isThreeLine: agents.isNotEmpty,
       onTap: () => context.push(pr.routePath),
-    );
-  }
-}
-
-class _MessageBody extends StatelessWidget {
-  const _MessageBody({
-    required this.title,
-    required this.body,
-    this.actionLabel,
-    this.onAction,
-    this.secondaryLabel,
-    this.onSecondary,
-  });
-
-  final String title;
-  final String body;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-  final String? secondaryLabel;
-  final VoidCallback? onSecondary;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: theme.textTheme.headlineSmall),
-          const SizedBox(height: 12),
-          Text(body, style: theme.textTheme.bodyLarge?.copyWith(height: 1.45)),
-          if (actionLabel != null && onAction != null) ...[
-            const SizedBox(height: 24),
-            FilledButton(onPressed: onAction, child: Text(actionLabel!)),
-          ],
-          if (secondaryLabel != null && onSecondary != null) ...[
-            const SizedBox(height: 12),
-            TextButton(onPressed: onSecondary, child: Text(secondaryLabel!)),
-          ],
-        ],
-      ),
     );
   }
 }

@@ -242,6 +242,7 @@ run_quality() {
   bash -n tool/ci/install_android_sdk.sh
   bash -n tool/ci/test_install_android_sdk.sh
   bash -n tool/ci/run_local_ci.sh
+  bash -n tool/ci/setup_flutter.sh
   bash tool/ci/test_heartbeat.sh
   step_ok
 

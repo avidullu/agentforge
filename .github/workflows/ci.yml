@@ -43,11 +43,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          # Forgejo's cache service currently rejects actions/cache auth.
-          cache: false
+        run: bash tool/ci/setup_flutter.sh
 
       # Single source of truth: same script developers run locally.
       # Debug reds with: bash tool/ci/run_local_ci.sh --lane quality
@@ -69,10 +65,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: false
+        run: bash tool/ci/setup_flutter.sh
 
       - name: Build-smoke product steps (web only; no Android SDK)
         run: bash tool/ci/run_local_ci.sh --lane build-smoke
