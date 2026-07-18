@@ -69,17 +69,19 @@ after passing these local gates:
 
 ## Shippable work ledger
 
-One row represents one independently reviewable PR. Every implementation PR
-must update its row and this document's changelog.
+One row represents one independently reviewable PR. A row marked as a
+multi-PR workstream is an index to its sole detailed tracker; child PR status is
+maintained there rather than duplicated here. Every implementation PR must
+update its owning tracker row and changelog.
 
-| ID | Deliverable | Status | Dependency / gate | PR |
+| ID | Deliverable | Status | Dependency / gate | PR / tracker |
 |---|---|---|---|---|
 | AF-001 | Baseline audit, deep-link ownership, review head pinning, privacy and side-car safety | **SHIPPED** | Merged 2026-07-18; Forgejo CI green | [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1) |
 | AF-002 | Release signing and hosted `assetlinks.json` / AASA; Gmail device CUJ | **BLOCKED** | Android signing identity, Apple Team ID, reachable association strategy | — |
 | AF-003 | Changes/diff viewer, checks, conflicts, mergeability, reviewed-head guard | **PLANNED** | Forgejo API/UI design | — |
 | AF-004 | Authenticated HTTPS agent protocol and compliant MCP adapter | **PLANNED** | Threat model, endpoint identity/pairing, stable MCP 2025-11-25 | — |
 | AF-005 | Typed agent health, heartbeat TTL, partial failure, durable provenance | **PARTIAL** | AF-004 identity model | — |
-| AF-006 | Design-handoff implementation and WCAG 2.1 AA pass | **PLANNED** | AF-003 information architecture | — |
+| AF-006 | Mobile design ingestion and WCAG 2.1 AA implementation (multi-PR) | **IN PROGRESS — INTAKE** | AF-003/004/005 contracts; AF-008 asset provenance | [AF-006 tracker](projects/AF-006-Mobile-Design-Ingestion.md) |
 | AF-007 | CI/release hardening: format, coverage floor, Android build, pinned toolchain | **SHIPPED IN AF-001** | Forgejo run 12 green | [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1) |
 | AF-008 | Public-code/private-runtime licensing and data-boundary decision | **DECISION NEEDED** | Owner selects license/distribution model | — |
 
@@ -136,10 +138,22 @@ and the following statements are factually true:
    devices once AF-002 signing and association gates are resolved.
 4. Build AF-003 before treating in-app approval as a complete review workflow.
 5. Threat-model and implement AF-004/AF-005 before connecting real agents.
-6. Apply the component/state/accessibility plan in the design review.
+6. Execute the PR-sized sequence in the
+   [AF-006 mobile design tracker](projects/AF-006-Mobile-Design-Ingestion.md):
+   safe intake first, semantic primitives and shell next, then gated review,
+   endpoint, analytics and device work.
 
 ## Changelog
 
+- **2026-07-18 — AF-006-A1 READY FOR REVIEW:** Selected and audited the exact
+  Final mobile handoff. Added a safe hash/provenance intake, quarantined raw
+  private/broken/unlicensed binaries and prototype contracts, corrected the
+  design review, and created the canonical AF-006 PR ledger, 27-gap register,
+  screen-to-code map, state matrix, pickup protocol and Definition of Done.
+  The candidate passed link/JSON/hash/quarantine/denylist checks, formatting,
+  clean Flutter analysis, all 46 tests at 35.92% line coverage (29% floor), and
+  debug APK plus release Web builds. Ready-for-review Forgejo PR link pending
+  publication.
 - **2026-07-18 — AF-001 / AF-007 SHIPPED:** Replaced aspirational M0-M5
   completion claims with
   verified statuses and gates. Added the design audit, deep-link/app-links
