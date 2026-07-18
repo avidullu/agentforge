@@ -159,7 +159,10 @@ void main() {
     test('resolves an existing dart CLI', () {
       final path = hermeticDartExecutable();
       expect(File(path).existsSync(), isTrue);
-      final base = path.split(Platform.pathSeparator).last.toLowerCase();
+      // Use URI segments so Windows paths with mixed/forward separators work.
+      final base = File(path).uri.pathSegments.isNotEmpty
+          ? File(path).uri.pathSegments.last.toLowerCase()
+          : '';
       expect(base == 'dart' || base == 'dart.exe', isTrue);
     });
   });
