@@ -26,7 +26,7 @@ class _Adapter implements HttpClientAdapter {
 
 void main() {
   const settings = AppSettings(
-    baseUrl: 'https://avis-pbook.tail651ec3.ts.net',
+    baseUrl: AppSettings.defaultBaseUrl,
     token: 'test-token',
   );
 

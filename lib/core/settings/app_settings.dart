@@ -1,3 +1,5 @@
+import '../config/app_config.dart';
+
 /// Load-time binding of the PAT to the configured Forgejo origin (AF-010).
 enum CredentialLoadState {
   /// No token stored for the current origin.
@@ -31,8 +33,11 @@ class AppSettings {
   /// How the [token] relates to [baseUrl] after load/migration.
   final CredentialLoadState credentialState;
 
-  static const defaultBaseUrl = 'https://avis-pbook.tail651ec3.ts.net';
-  static const trustedHost = 'avis-pbook.tail651ec3.ts.net';
+  /// Build-time trusted origin (const alias → [AppConfig]; AF-011).
+  static const defaultBaseUrl = AppConfig.defaultBaseUrl;
+
+  /// Host derived from [defaultBaseUrl] (const alias → [AppConfig]; AF-011).
+  static const trustedHost = AppConfig.trustedHost;
 
   bool get isConfigured => baseUrl.trim().isNotEmpty && token.trim().isNotEmpty;
 
