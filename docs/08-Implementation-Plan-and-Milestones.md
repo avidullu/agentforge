@@ -176,7 +176,7 @@ and the following statements are factually true:
   `IndexOnlySecureStore`. App id unchanged (D1). Host literals remain
   until AF-011.
 
-- **2026-07-18 — AF-011 / S3 IN PROGRESS:** Wire `AppSettings` /
+- **2026-07-18 — AF-011 / S3 IN REVIEW:** Forgejo #12. Wire `AppSettings` /
   `kForgejoHost` / `kAppScheme` to const `AppConfig` aliases; remove
   private host UI strings from `lib/`; deep-link tests use synthetic
   host.
