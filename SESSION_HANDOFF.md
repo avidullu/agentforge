@@ -11,8 +11,8 @@ checked-in copy is a repository-visible checkpoint.
 
 ## You are here
 
-- **Hot path: AF-011 / PII-redaction S3** — wire Dart to const `AppConfig`.
-  Branch `af-011-wire-appconfig` (from `origin/main` @ `0a42295`).
+- **Hot path: Forgejo PR #12 (AF-011 / PII-redaction S3)** — wire Dart to
+  const `AppConfig`. Branch `af-011-wire-appconfig`, tip `79ee99a`.
 - AF-010 / PR #10 **SHIPPED** as `0a42295` (tip `6dd4b84`); CI green + LGTM 276.
 - AF-009 / PR #7 **SHIPPED** as `93e06d7`.
 - AF-017 OpenAI Build Week submission is **IN PROGRESS**. Tracker:
