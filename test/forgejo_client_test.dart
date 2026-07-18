@@ -26,7 +26,7 @@ class _Adapter implements HttpClientAdapter {
 
 void main() {
   const settings = AppSettings(
-    baseUrl: 'https://avis-pbook.tail651ec3.ts.net',
+    baseUrl: AppSettings.defaultBaseUrl,
     token: 'test-token',
   );
 
@@ -36,7 +36,7 @@ void main() {
       expect(options.path, '/api/v1/user');
       expect(options.headers['Authorization'], 'token test-token');
       return ResponseBody.fromString(
-        '{"login":"avidullu"}',
+        '{"login":"devuser"}',
         200,
         headers: {
           Headers.contentTypeHeader: [Headers.jsonContentType],
@@ -45,7 +45,7 @@ void main() {
     });
 
     final client = ForgejoClient(settings: settings, dio: dio);
-    expect(await client.whoAmI(), 'avidullu');
+    expect(await client.whoAmI(), 'devuser');
   });
 
   test('listOpenPullRequests maps issue search results', () async {

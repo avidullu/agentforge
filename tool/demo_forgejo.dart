@@ -3,21 +3,24 @@ import 'dart:io';
 import 'package:agentforge/core/forgejo/forgejo_client.dart';
 import 'package:agentforge/core/settings/app_settings.dart';
 
-/// Live demo against avis-pbook using the same ForgejoClient as the app.
+/// Live demo against a Forgejo instance using the same [ForgejoClient] as the app.
+///
+/// Defaults to the build's trusted origin ([AppSettings.defaultBaseUrl] —
+/// synthetic in committed trees). Override with `FORGEJO_URL` for a private
+/// instance. Never embeds a private host literal (AF-012).
 Future<void> main(List<String> args) async {
   final token =
       Platform.environment['FORGEJO_TOKEN'] ??
       (args.isNotEmpty ? args.first : '');
   if (token.isEmpty) {
     stderr.writeln(
-      'Usage: FORGEJO_TOKEN=... dart run tool/demo_avis_pbook.dart',
+      'Usage: FORGEJO_TOKEN=... [FORGEJO_URL=...] dart run tool/demo_forgejo.dart',
     );
     exit(2);
   }
 
   final base =
-      Platform.environment['FORGEJO_URL'] ??
-      'https://avis-pbook.tail651ec3.ts.net';
+      Platform.environment['FORGEJO_URL'] ?? AppSettings.defaultBaseUrl;
 
   stdout.writeln('=== AgentForge live demo ===');
   stdout.writeln('Forgejo: $base');

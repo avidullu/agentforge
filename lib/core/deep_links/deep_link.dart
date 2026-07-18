@@ -1,18 +1,23 @@
 /// Pure helpers that map OS-level deep-link URIs into go_router locations.
 ///
 /// Supported shapes:
-/// - `https://avis-pbook.tail651ec3.ts.net/{owner}/{repo}/pulls/{n}`
+/// - `https://{trustedHost}/{owner}/{repo}/pulls/{n}`
 /// - `https://…/{owner}/{repo}/pull/{n}`
-/// - `agentforge://pr/{owner}/{repo}/{n}`  (custom scheme, easy adb/testing)
-/// - `agentforge://open/{owner}/{repo}/pulls/{n}`
-/// - `agentforge:///{owner}/{repo}/pulls/{n}`
+/// - `{urlScheme}://pr/{owner}/{repo}/{n}`  (custom scheme, easy adb/testing)
+/// - `{urlScheme}://open/{owner}/{repo}/pulls/{n}`
+/// - `{urlScheme}:///{owner}/{repo}/pulls/{n}`
 library;
 
+import '../config/app_config.dart';
+
 /// Canonical Forgejo host used for App Links / Universal Links.
-const kForgejoHost = 'avis-pbook.tail651ec3.ts.net';
+///
+/// Const alias to [AppConfig.trustedHost] so private hosts never appear as
+/// literals in `lib/` (AF-011 / docs/11 §5.4).
+const kForgejoHost = AppConfig.trustedHost;
 
 /// Custom URL scheme for debug / adb / manual tests (no domain verification).
-const kAppScheme = 'agentforge';
+const kAppScheme = AppConfig.urlScheme;
 
 final _prPathRe = RegExp(r'^/([^/]+)/([^/]+)/pulls?/(\d+)/?$');
 
@@ -20,8 +25,8 @@ final _prPathRe = RegExp(r'^/([^/]+)/([^/]+)/pulls?/(\d+)/?$');
 bool isPrPath(String path) => _prPathRe.hasMatch(path);
 
 /// Converts an incoming OS deep-link [uri] into a go_router location
-/// (e.g. `/Khelsutra/badminton-highlight-indexer/pulls/611`), or `null`
-/// if the URI is not a recognized AgentForge deep link.
+/// (e.g. `/owner/repo/pulls/611`), or `null` if the URI is not a recognized
+/// AgentForge deep link.
 String? deepLinkToLocation(Uri? uri) {
   if (uri == null) return null;
 
