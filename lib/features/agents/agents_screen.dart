@@ -44,7 +44,7 @@ class _AgentsScreenState extends ConsumerState<AgentsScreen> {
                   controller: machineCtrl,
                   decoration: const InputDecoration(
                     labelText: 'Machine *',
-                    hintText: 'avis-msi / avis-pbook',
+                    hintText: 'laptop / workstation',
                   ),
                   validator: (v) =>
                       (v == null || v.trim().isEmpty) ? 'Required' : null,

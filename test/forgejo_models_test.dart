@@ -10,29 +10,27 @@ void main() {
         'number': 623,
         'title': 'docs: eval report',
         'state': 'open',
-        'html_url':
-            'https://avis-pbook.tail651ec3.ts.net/Khelsutra/badminton-highlight-indexer/pulls/623',
+        'html_url': '${AppSettings.defaultBaseUrl}/owner/demo-repo/pulls/623',
         'updated_at': '2026-07-18T01:00:00+05:30',
-        'user': {'login': 'avidullu', 'full_name': 'Avi Dullu'},
+        'user': {'login': 'devuser', 'full_name': 'Dev User'},
         'repository': {
-          'owner': 'Khelsutra',
-          'name': 'badminton-highlight-indexer',
-          'full_name': 'Khelsutra/badminton-highlight-indexer',
+          'owner': 'owner',
+          'name': 'demo-repo',
+          'full_name': 'owner/demo-repo',
         },
         'pull_request': {
           'draft': false,
-          'html_url':
-              'https://avis-pbook.tail651ec3.ts.net/Khelsutra/badminton-highlight-indexer/pulls/623',
+          'html_url': '${AppSettings.defaultBaseUrl}/owner/demo-repo/pulls/623',
         },
       });
 
-      expect(pr.owner, 'Khelsutra');
-      expect(pr.repo, 'badminton-highlight-indexer');
+      expect(pr.owner, 'owner');
+      expect(pr.repo, 'demo-repo');
       expect(pr.number, 623);
       expect(pr.title, 'docs: eval report');
-      expect(pr.user.login, 'avidullu');
+      expect(pr.user.login, 'devuser');
       expect(pr.draft, isFalse);
-      expect(pr.routePath, '/Khelsutra/badminton-highlight-indexer/pulls/623');
+      expect(pr.routePath, '/owner/demo-repo/pulls/623');
       expect(pr.updatedAt, isNotNull);
     });
   });
@@ -40,8 +38,8 @@ void main() {
   group('AppSettings', () {
     test('normalizeBaseUrl strips trailing slashes', () {
       expect(
-        AppSettings.normalizeBaseUrl('https://avis-pbook.tail651ec3.ts.net/'),
-        'https://avis-pbook.tail651ec3.ts.net',
+        AppSettings.normalizeBaseUrl('${AppSettings.defaultBaseUrl}/'),
+        AppSettings.defaultBaseUrl,
       );
     });
 

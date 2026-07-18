@@ -67,7 +67,7 @@ class HomeScreen extends ConsumerWidget {
             return _MessageBody(
               title: 'Connect Forgejo',
               body:
-                  'Add your avis-pbook instance URL and a personal access token '
+                  'Add your Forgejo instance URL and a personal access token '
                   'to list open pull requests over Tailscale.',
               actionLabel: 'Open Settings',
               onAction: () => context.push('/settings'),
