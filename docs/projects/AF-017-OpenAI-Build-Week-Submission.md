@@ -92,7 +92,7 @@ PR must update its own row, affected gates/risks, and this document's changelog.
 
 | ID | Deliverable | Status | Dependency / acceptance gate | PR |
 |---|---|---|---|---|
-| AF-017-A | Canonical tracker, judging thesis, owner-action register, deadline, and repository/handoff links | **IN PROGRESS** | Planning only; facts verified against official rules and shipped repository state | This branch |
+| AF-017-A | Canonical tracker, judging thesis, owner-action register, deadline, and repository/handoff links | **IN REVIEW** | Planning only; facts verified against official rules and shipped repository state | [Forgejo #9](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/9) |
 | AF-017-B | Submission eligibility package: license/distribution decision, notices, third-party/asset audit, public/private judging-access decision | **BLOCKED** | Owner chooses license/distribution route; AF-008 lineage preserved; BW-G05/BW-G09 | — |
 | AF-017-C | Judge-safe synthetic demo mode and deterministic fixtures; no dependency on private Forgejo, tokens, hosts, or agent endpoints | **PLANNED** | AF-009 synthetic config; exact-head and provenance semantics preserved; privacy tests | — |
 | AF-017-D | Coherent golden-path product polish for Home → PR → agent feedback → head change → guarded re-review; responsive Web presentation and accessibility smoke coverage | **PLANNED** | AF-017-C; do not claim unimplemented diff/check or production MCP capabilities | — |
@@ -233,4 +233,4 @@ AF-017 may move to **DONE** only when:
   and owner gates, eight-PR ledger, judging/demo contract, risks, daily
   checkpoints, verification protocol, and Definition of Done. No eligibility,
   license, model/session, hosting, video, or submission action is claimed
-  complete.
+  complete. Tracker bootstrap is in review as Forgejo #9.
