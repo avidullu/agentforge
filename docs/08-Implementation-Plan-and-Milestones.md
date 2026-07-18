@@ -33,7 +33,9 @@ The verified baseline before the hardening PR was:
   toolchain and Pixel 6 AVD are now installed and verified on the audit
   workstation.
 
-The AF-001 candidate has now passed these local gates:
+AF-001 shipped through
+[Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1)
+after passing these local gates:
 
 - `dart format --output=none --set-exit-if-changed lib test tool`: clean.
 - `flutter analyze --fatal-infos`: clean.
@@ -49,6 +51,10 @@ The AF-001 candidate has now passed these local gates:
   feedback, and delivery receipt smoke verified.
 - Android XML, iOS plists, association templates, web JSON, CI YAML, and
   `pubspec.yaml`: syntactically valid.
+- Forgejo CI: successful on reviewed head `98b3749` after independently
+  repeating format, analysis, 46 tests, 35.92% coverage, APK, and Web builds.
+- Merge commit `7d5cb360a558ba285e6dc0ab13378085247a97b7` is present on both
+  Forgejo `main` and GitHub `main`.
 
 ## Milestone truth
 
@@ -68,13 +74,13 @@ must update its row and this document's changelog.
 
 | ID | Deliverable | Status | Dependency / gate | PR |
 |---|---|---|---|---|
-| AF-001 | Baseline audit, deep-link ownership, review head pinning, privacy and side-car safety | **IN REVIEW** | Forgejo PR checks and review | [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1) |
+| AF-001 | Baseline audit, deep-link ownership, review head pinning, privacy and side-car safety | **SHIPPED** | Merged 2026-07-18; Forgejo CI green | [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1) |
 | AF-002 | Release signing and hosted `assetlinks.json` / AASA; Gmail device CUJ | **BLOCKED** | Android signing identity, Apple Team ID, reachable association strategy | — |
 | AF-003 | Changes/diff viewer, checks, conflicts, mergeability, reviewed-head guard | **PLANNED** | Forgejo API/UI design | — |
 | AF-004 | Authenticated HTTPS agent protocol and compliant MCP adapter | **PLANNED** | Threat model, endpoint identity/pairing, stable MCP 2025-11-25 | — |
 | AF-005 | Typed agent health, heartbeat TTL, partial failure, durable provenance | **PARTIAL** | AF-004 identity model | — |
 | AF-006 | Design-handoff implementation and WCAG 2.1 AA pass | **PLANNED** | AF-003 information architecture | — |
-| AF-007 | CI/release hardening: format, coverage floor, Android build, pinned toolchain | **IN REVIEW IN AF-001** | Forgejo PR checks | [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1) |
+| AF-007 | CI/release hardening: format, coverage floor, Android build, pinned toolchain | **SHIPPED IN AF-001** | Forgejo run 12 green | [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1) |
 | AF-008 | Public-code/private-runtime licensing and data-boundary decision | **DECISION NEEDED** | Owner selects license/distribution model | — |
 
 ## Definition of Done
@@ -102,7 +108,8 @@ and the following statements are factually true:
   and Android build; iOS builds run on a signed macOS path.
 - [ ] The runtime privacy boundary, public repository status, telemetry/font
   behavior, backup policy, and license are documented consistently.
-- [ ] Forgejo `main` and the GitHub mirror are synchronized after each merge.
+- [x] Forgejo `main` and the GitHub mirror are synchronized after the shipped
+  merge (verified at `7d5cb360`).
 
 ## Design and protocol decisions
 
@@ -122,7 +129,7 @@ and the following statements are factually true:
 
 ## Next sequence
 
-1. Publish AF-001, verify Forgejo checks, merge, and synchronize GitHub.
+1. Select the release/license model for AF-008.
 2. Decide release signing and Apple development/distribution strategy for
    AF-002; deploy both association files.
 3. Run Gmail verified-link and persistence CUJs on physical Android/iOS
@@ -133,7 +140,8 @@ and the following statements are factually true:
 
 ## Changelog
 
-- **2026-07-18 — AF-001:** Replaced aspirational M0-M5 completion claims with
+- **2026-07-18 — AF-001 / AF-007 SHIPPED:** Replaced aspirational M0-M5
+  completion claims with
   verified statuses and gates. Added the design audit, deep-link/app-links
   corrections, trusted-host routing, review head pinning, system-font privacy,
   side-car fan-out restriction, feedback idempotency, HTTPS endpoint policy,
@@ -147,6 +155,10 @@ and the following statements are factually true:
   [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1).
   The candidate passed 46 tests at 36.05% coverage, release-web and debug-APK
   builds, Chrome and Android 16 AVD UI smokes, a custom-scheme deep-link smoke,
-  and the mock side-car receipt flow.
+  and the mock side-car receipt flow. Forgejo CI repeated the suite at 35.92%
+  coverage and built both APK and Web artifacts. PR #1 merged as `7d5cb360`;
+  Forgejo and GitHub `main` were then verified at the same commit. Tracker
+  reconciliation is recorded in
+  [Forgejo #2](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/2).
 - **2026-07-18 — baseline:** Direct commits created M0-M5 prototype surfaces;
   no tracked-project ledger or documented phone acceptance existed.
