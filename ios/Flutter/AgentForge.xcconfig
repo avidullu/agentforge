@@ -2,5 +2,6 @@
 // Tracked synthetic defaults use AgentForge.xcconfig.
 // Real overrides belong only in AgentForge.local.xcconfig (gitignored).
 // Do not set PRODUCT_BUNDLE_IDENTIFIER here — identity stays target-level (D1).
+// Entitlement override path deferred to AF-014 (not emitted in S1).
 AGENTFORGE_FORGEJO_HOST=forge.example.test
 AGENTFORGE_URL_SCHEME=agentforge

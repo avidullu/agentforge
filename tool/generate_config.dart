@@ -14,7 +14,7 @@ void main(List<String> args) {
       '\n'
       '  (default)   build-safe validation; rewrite selected Dart;\n'
       '              with real config write only gitignored *.local natives\n'
-      '  --release   also fail closed on empty signing fields\n',
+      '  --release   also fail closed on empty/malformed signing fields\n',
     );
     return;
   }
@@ -28,46 +28,37 @@ void main(List<String> args) {
       validateRelease(config);
     }
 
-    final selectedPath =
-        '${repoRoot.path}/lib/core/config/generated/app_config.selected.dart';
+    const selectedRel = 'lib/core/config/generated/app_config.selected.dart';
+    final selectedPath = '${repoRoot.path}/$selectedRel';
     File(selectedPath).writeAsStringSync(renderSelectedDart(config));
-    stdout.writeln('Wrote $selectedPath (origin=${config.origin})');
+    stdout.writeln('Wrote $selectedRel');
 
-    final usingReal =
-        !config.isSyntheticOrigin ||
-        configFile.path.endsWith('agentforge.config.json') ||
-        Platform.environment.containsKey('AGENTFORGE_CONFIG');
-
-    if (usingReal && !config.isSyntheticOrigin) {
+    // Source selection decides native write policy — not origin equality.
+    if (isRealConfigSource(configFile, repoRoot)) {
       // Never overwrite tracked synthetic natives — only gitignored locals.
-      final localProps = File(
-        '${repoRoot.path}/agentforge-config.local.properties',
-      );
-      localProps.writeAsStringSync(renderProperties(config));
-      stdout.writeln('Wrote ${localProps.path}');
+      // Entitlement file selection deferred to AF-014.
+      const localPropsRel = 'agentforge-config.local.properties';
+      File(
+        '${repoRoot.path}/$localPropsRel',
+      ).writeAsStringSync(renderProperties(config));
+      stdout.writeln('Wrote $localPropsRel');
 
-      final localXc = File(
-        '${repoRoot.path}/ios/Flutter/AgentForge.local.xcconfig',
-      );
-      localXc.writeAsStringSync(
-        '${renderXcconfig(config)}\n${renderLocalXcconfigWithEntitlements()}',
-      );
-      stdout.writeln('Wrote ${localXc.path}');
+      const localXcRel = 'ios/Flutter/AgentForge.local.xcconfig';
+      File(
+        '${repoRoot.path}/$localXcRel',
+      ).writeAsStringSync(renderXcconfig(config));
+      stdout.writeln('Wrote $localXcRel');
+    } else {
+      // Idempotent refresh of tracked synthetic natives from example only.
+      const propsRel = 'agentforge-config.properties';
+      File(
+        '${repoRoot.path}/$propsRel',
+      ).writeAsStringSync(renderProperties(config));
+      stdout.writeln('Refreshed $propsRel (synthetic)');
 
-      final entitlementsLocal = File(
-        '${repoRoot.path}/ios/Runner/Runner.entitlements.local',
-      );
-      entitlementsLocal.writeAsStringSync(renderEntitlementsLocal(config));
-      stdout.writeln('Wrote ${entitlementsLocal.path}');
-    } else if (config.isSyntheticOrigin) {
-      // Idempotent refresh of tracked synthetic natives from example.
-      final props = File('${repoRoot.path}/agentforge-config.properties');
-      props.writeAsStringSync(renderProperties(config));
-      stdout.writeln('Refreshed ${props.path} (synthetic)');
-
-      final xc = File('${repoRoot.path}/ios/Flutter/AgentForge.xcconfig');
-      xc.writeAsStringSync(renderXcconfig(config));
-      stdout.writeln('Refreshed ${xc.path} (synthetic)');
+      const xcRel = 'ios/Flutter/AgentForge.xcconfig';
+      File('${repoRoot.path}/$xcRel').writeAsStringSync(renderXcconfig(config));
+      stdout.writeln('Refreshed $xcRel (synthetic)');
     }
 
     if (release) {

@@ -136,20 +136,25 @@ List<PiiHit> scanStructuralHttps({
 }
 
 bool _isAllowedHttpsLiteral(String url) {
-  final lower = url.toLowerCase();
-  if (lower.startsWith(kSyntheticHttpsOrigin.toLowerCase())) return true;
-  // Loopback-looking hosts (mock agent / local dev fixtures).
   final uri = Uri.tryParse(url);
-  if (uri == null) return false;
+  if (uri == null || !uri.hasScheme) return false;
+  final scheme = uri.scheme.toLowerCase();
+  if (scheme != 'https') return false;
+  if (uri.userInfo.isNotEmpty) return false;
+
   final host = uri.host.toLowerCase();
+  // Loopback fixtures for mock-agent tests.
   if (host == '127.0.0.1' || host == 'localhost' || host == '::1') {
     return true;
   }
-  // Schema $id and other forge.example.test URLs without full origin prefix.
-  if (host == 'forge.example.test') return true;
   // JSON Schema meta URLs are public infrastructure, not Forgejo hosts.
   if (host == 'json-schema.org') return true;
-  return false;
+
+  // Exact synthetic origin only: scheme+host (+ implicit 443). No suffix hosts,
+  // no alternate ports, no userinfo (docs/11 §8.1).
+  if (host != 'forge.example.test') return false;
+  if (uri.hasPort && uri.port != 443) return false;
+  return true;
 }
 
 /// List tracked files via `git ls-files -z` (NUL-safe).

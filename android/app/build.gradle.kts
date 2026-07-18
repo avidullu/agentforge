@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -6,7 +8,7 @@ plugins {
 
 // Tracked synthetic defaults at repo root; optional local overrides only.
 // applicationId remains D1-owned in this file until AF-013 wires placeholders.
-val agentForgeProps = java.util.Properties().apply {
+val agentForgeProps = Properties().apply {
     val tracked = rootProject.file("../agentforge-config.properties")
     require(tracked.exists()) {
         "missing tracked agentforge-config.properties (synthetic defaults)"

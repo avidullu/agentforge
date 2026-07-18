@@ -1,11 +1,11 @@
 # AgentForge — Session Handoff (pick up here)
 
-**Written:** 2026-07-18  
-**Canonical repo:** https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge  
-**GitHub mirror:** https://github.com/avidullu/agentforge  
+**Written:** 2026-07-18
+**Canonical repo:** https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge
+**GitHub mirror:** https://github.com/avidullu/agentforge
 **Default branch:** `main` at **`4bb48ca`** (Forgejo + GitHub; PR #3 merge)
 
-**Also mirrored in-repo:** `SESSION_HANDOFF.md` (may lag; prefer this file when both exist).  
+**Also mirrored in-repo:** `SESSION_HANDOFF.md` (may lag; prefer this file when both exist).
 **Tracker (lifecycle rows only):** `docs/08-Implementation-Plan-and-Milestones.md`
 
 ---
@@ -121,20 +121,20 @@ AF-006 remains multi-PR **IN PROGRESS**. Execute only unblocked rows from the tr
 2. Post review bodies from a **file** via Python `json.dumps`.
 3. Push **both** `origin` and `github`.
 4. Runner `avis-msi-wsl` restarts cancel jobs; short reds often infra.
-5. Living handoff:  
+5. Living handoff:
    `/mnt/c/Users/avidu/OneDrive/Documents/claude-sync/memory/Agentforge/session-handoff.md`
 
 ---
 
 ## 7. First prompts for next session
 
-**A — Finish AF-009**  
+**A — Finish AF-009**
 > Fetch PR #7 tip; read comments; green/LGTM → merge; else fix.
 
-**B — AF-010** (only after #7 merges)  
+**B — AF-010** (only after #7 merges)
 > Origin-bound credential store + legacy key deletion + upgrade test.
 
-**C — AF-006**  
+**C — AF-006**
 > Only rows whose gates are factually unblocked in the AF-006 tracker.
 
 ---

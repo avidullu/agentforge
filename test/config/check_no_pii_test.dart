@@ -4,10 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../tool/config_model.dart';
 import '../../tool/pii_guard.dart';
+import 'hermetic_dart.dart';
 
 void main() {
   final repoRoot = findRepoRoot();
   final fixtures = Directory('${repoRoot.path}/test/config/fixtures');
+  final dartBin = hermeticDartExecutable();
 
   group('scanWithBlocklist (fixtures)', () {
     test('clean fixture has no hits for synthetic patterns', () {
@@ -51,11 +53,38 @@ void main() {
       expect(hits, isNotEmpty);
       expect(hits.first.patternLabel, 'structural-https');
     });
+
+    test('rejects suffix-host bypass of synthetic origin', () {
+      final f = File('${Directory.systemTemp.path}/struct-suffix.txt');
+      f.writeAsStringSync('u=https://forge.example.test.evil.invalid/x\n');
+      final hits = scanStructuralHttps(files: [f], repoRoot: '');
+      expect(hits, isNotEmpty);
+      if (f.existsSync()) f.deleteSync();
+    });
+
+    test('rejects userinfo and alternate port on synthetic host', () {
+      final f = File('${Directory.systemTemp.path}/struct-userinfo.txt');
+      f.writeAsStringSync(
+        'a=https://user@forge.example.test/path\n'
+        'b=https://forge.example.test:8443\n',
+      );
+      final hits = scanStructuralHttps(files: [f], repoRoot: '');
+      expect(hits.length, greaterThanOrEqualTo(2));
+      if (f.existsSync()) f.deleteSync();
+    });
+
+    test('allows exact synthetic origin with path', () {
+      final f = File('${Directory.systemTemp.path}/struct-exact.txt');
+      f.writeAsStringSync('u=https://forge.example.test/schemas/x\n');
+      final hits = scanStructuralHttps(files: [f], repoRoot: '');
+      expect(hits, isEmpty);
+      if (f.existsSync()) f.deleteSync();
+    });
   });
 
   group('check_no_pii CLI', () {
     test('blocklist mode fails closed on dirty fixture root', () {
-      final result = Process.runSync('dart', [
+      final result = Process.runSync(dartBin, [
         'run',
         'tool/check_no_pii.dart',
         '--mode=blocklist',
@@ -68,7 +97,7 @@ void main() {
     });
 
     test('report mode exits 0 even when hits exist', () {
-      final result = Process.runSync('dart', [
+      final result = Process.runSync(dartBin, [
         'run',
         'tool/check_no_pii.dart',
         '--mode=report',
@@ -81,7 +110,7 @@ void main() {
     });
 
     test('report mode on tracked tree is non-blocking without blocklist', () {
-      final result = Process.runSync('dart', [
+      final result = Process.runSync(dartBin, [
         'run',
         'tool/check_no_pii.dart',
         '--mode=report',

@@ -14,6 +14,19 @@ const List<String> kForbiddenSecretPropertyNames = [
   'password',
 ];
 
+const Set<String> kRootKeys = {'schemaVersion', 'forgejo', 'app', 'signing'};
+const Set<String> kForgejoKeys = {'origin'};
+const Set<String> kAppKeys = {'applicationId', 'gradleNamespace', 'urlScheme'};
+const Set<String> kSigningKeys = {'androidSha256Fingerprints', 'appleTeamId'};
+
+/// Android assetlinks SHA-256 fingerprint: 32 colon-separated hex pairs.
+final RegExp kAndroidSha256FingerprintRe = RegExp(
+  r'^([0-9A-Fa-f]{2}:){31}[0-9A-Fa-f]{2}$',
+);
+
+/// Apple Team ID: 10 alphanumeric characters.
+final RegExp kAppleTeamIdRe = RegExp(r'^[A-Z0-9]{10}$');
+
 /// Parsed, validated AgentForge configuration.
 class AgentForgeConfig {
   AgentForgeConfig({
@@ -79,11 +92,43 @@ File resolveConfigFile(Directory repoRoot) {
   return File('${repoRoot.path}/config/agentforge.config.example.json');
 }
 
+/// True only when the resolved source is the checked-in example file.
+///
+/// Source path — not origin value — decides whether native writes may refresh
+/// tracked synthetics (review finding: real config with synthetic origin).
+bool isExampleConfigSource(File configFile, Directory repoRoot) {
+  final example = File(
+    '${repoRoot.path}/config/agentforge.config.example.json',
+  );
+  return _sameFile(configFile, example);
+}
+
+bool isRealConfigSource(File configFile, Directory repoRoot) {
+  return !isExampleConfigSource(configFile, repoRoot);
+}
+
+bool _sameFile(File a, File b) {
+  return a.absolute.path == b.absolute.path;
+}
+
+/// Repo-relative path label for logs (never absolute workspace paths).
+String repoRelativeLabel(Directory repoRoot, String absolutePath) {
+  final root = repoRoot.absolute.path;
+  final path = File(absolutePath).absolute.path;
+  final prefix = root.endsWith(Platform.pathSeparator)
+      ? root
+      : '$root${Platform.pathSeparator}';
+  if (path.startsWith(prefix)) {
+    return path.substring(prefix.length).replaceAll('\\', '/');
+  }
+  return path.split(Platform.pathSeparator).last;
+}
+
 Map<String, dynamic> loadConfigJson(File file) {
   final raw = file.readAsStringSync();
   final decoded = jsonDecode(raw);
   if (decoded is! Map<String, dynamic>) {
-    throw ConfigValidationException('${file.path}: root must be a JSON object');
+    throw ConfigValidationException('config root must be a JSON object');
   }
   _assertNoSecretPropertyNames(decoded, path: '');
   return decoded;
@@ -114,8 +159,21 @@ void _assertNoSecretPropertyNames(Object? node, {required String path}) {
   }
 }
 
+void _rejectUnknownKeys(Map map, Set<String> allowed, String path) {
+  for (final key in map.keys) {
+    final k = key.toString();
+    if (!allowed.contains(k)) {
+      throw ConfigValidationException(
+        'unknown property "$k" at $path (additionalProperties: false)',
+      );
+    }
+  }
+}
+
 /// Build-safe validation (always).
 AgentForgeConfig parseAndValidateBuildSafe(Map<String, dynamic> json) {
+  _rejectUnknownKeys(json, kRootKeys, 'root');
+
   final schemaVersion = json['schemaVersion'];
   if (schemaVersion is! int || schemaVersion != kSupportedSchemaVersion) {
     throw ConfigValidationException(
@@ -127,6 +185,7 @@ AgentForgeConfig parseAndValidateBuildSafe(Map<String, dynamic> json) {
   if (forgejo is! Map) {
     throw ConfigValidationException('forgejo must be an object');
   }
+  _rejectUnknownKeys(forgejo, kForgejoKeys, 'forgejo');
   final originRaw = forgejo['origin'];
   if (originRaw is! String || originRaw.trim().isEmpty) {
     throw ConfigValidationException('forgejo.origin is required');
@@ -137,6 +196,7 @@ AgentForgeConfig parseAndValidateBuildSafe(Map<String, dynamic> json) {
   if (app is! Map) {
     throw ConfigValidationException('app must be an object');
   }
+  _rejectUnknownKeys(app, kAppKeys, 'app');
   final applicationId = _requireNonEmptyString(app, 'applicationId');
   final gradleNamespace = _requireNonEmptyString(app, 'gradleNamespace');
   final urlScheme = _requireNonEmptyString(app, 'urlScheme');
@@ -151,6 +211,7 @@ AgentForgeConfig parseAndValidateBuildSafe(Map<String, dynamic> json) {
     if (signing is! Map) {
       throw ConfigValidationException('signing must be an object when present');
     }
+    _rejectUnknownKeys(signing, kSigningKeys, 'signing');
     final fp = signing['androidSha256Fingerprints'];
     if (fp != null) {
       if (fp is! List) {
@@ -158,10 +219,31 @@ AgentForgeConfig parseAndValidateBuildSafe(Map<String, dynamic> json) {
           'signing.androidSha256Fingerprints must be an array',
         );
       }
-      fingerprints = fp.map((e) => e.toString()).toList();
+      for (final e in fp) {
+        if (e is! String) {
+          throw ConfigValidationException(
+            'signing.androidSha256Fingerprints entries must be strings',
+          );
+        }
+        fingerprints.add(e);
+      }
     }
     final team = signing['appleTeamId'];
-    if (team != null) appleTeamId = team.toString();
+    if (team != null) {
+      if (team is! String) {
+        throw ConfigValidationException('signing.appleTeamId must be a string');
+      }
+      appleTeamId = team;
+    }
+  }
+
+  // Reject placeholder-looking values in required app fields.
+  for (final value in [origin, applicationId, gradleNamespace, urlScheme]) {
+    if (value.contains('<') || value.contains('>')) {
+      throw ConfigValidationException(
+        'unresolved placeholder remaining in config value',
+      );
+    }
   }
 
   return AgentForgeConfig(
@@ -175,17 +257,25 @@ AgentForgeConfig parseAndValidateBuildSafe(Map<String, dynamic> json) {
   );
 }
 
-/// Release/deployment validation — fails closed on empty signing.
+/// Release/deployment validation — fails closed on empty/malformed signing.
 void validateRelease(AgentForgeConfig config) {
-  if (config.androidSha256Fingerprints.isEmpty ||
-      config.androidSha256Fingerprints.any((e) => e.trim().isEmpty)) {
+  if (config.androidSha256Fingerprints.isEmpty) {
     throw ConfigValidationException(
       'release mode requires non-empty signing.androidSha256Fingerprints',
     );
   }
-  if (config.appleTeamId.trim().isEmpty) {
+  for (final fp in config.androidSha256Fingerprints) {
+    if (!kAndroidSha256FingerprintRe.hasMatch(fp.trim())) {
+      throw ConfigValidationException(
+        'release mode requires valid SHA-256 fingerprint shape '
+        '(32 colon-separated hex pairs), got malformed entry',
+      );
+    }
+  }
+  final team = config.appleTeamId.trim();
+  if (team.isEmpty || !kAppleTeamIdRe.hasMatch(team)) {
     throw ConfigValidationException(
-      'release mode requires non-empty signing.appleTeamId',
+      'release mode requires signing.appleTeamId as 10 alphanumeric chars',
     );
   }
 }
@@ -291,29 +381,8 @@ String renderXcconfig(AgentForgeConfig config) {
 // Tracked synthetic defaults use AgentForge.xcconfig.
 // Real overrides belong only in AgentForge.local.xcconfig (gitignored).
 // Do not set PRODUCT_BUNDLE_IDENTIFIER here — identity stays target-level (D1).
+// Entitlement override path deferred to AF-014 (not emitted in S1).
 AGENTFORGE_FORGEJO_HOST=${config.trustedHost}
 AGENTFORGE_URL_SCHEME=${config.urlScheme}
-''';
-}
-
-String renderEntitlementsLocal(AgentForgeConfig config) {
-  return '''
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>com.apple.developer.associated-domains</key>
-	<array>
-		<string>applinks:${config.trustedHost}?mode=developer</string>
-	</array>
-</dict>
-</plist>
-''';
-}
-
-String renderLocalXcconfigWithEntitlements() {
-  return '''
-// Generated local overrides — do not commit.
-CODE_SIGN_ENTITLEMENTS=Runner/Runner.entitlements.local
 ''';
 }
