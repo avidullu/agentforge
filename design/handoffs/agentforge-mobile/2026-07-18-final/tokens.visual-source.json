@@ -1,0 +1,114 @@
+{
+  "color": {
+    "background": {
+      "device": "#000000",
+      "card": "#1C1C1E",
+      "elevated": "#2C2C2E",
+      "pressed": "#3A3A3C",
+      "code": "#111214",
+      "tabBar": "rgba(18,18,20,0.9)"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "rgba(235,235,245,0.6)",
+      "tertiary": "rgba(235,235,245,0.45)",
+      "quaternary": "rgba(235,235,245,0.4)"
+    },
+    "separator": "rgba(84,84,88,0.5)",
+    "accent": {
+      "green": "#30D158",
+      "greenFill": "#248A3D",
+      "greenTint": "#7CE79A",
+      "greenChipBg": "#0F3B21",
+      "greenChipBorder": "rgba(48,209,88,0.4)",
+      "greenOnDark": "#04240f"
+    },
+    "humanBubble": "#0A84FF",
+    "state": {
+      "open": "#30D158",
+      "reviewRequested": "#FF9F0A",
+      "merged": "#BF5AF2",
+      "agentError": "#FF453A",
+      "errorBg": "#3b1210",
+      "errorBorder": "rgba(255,69,58,0.4)",
+      "errorText": "#ff8a80"
+    },
+    "agents": {
+      "Claude": "#E8855B",
+      "Codex": "#19C6A7",
+      "Grok": "#9BA1A6",
+      "Gemini": "#4E8CF7",
+      "custom": "#5E5CE6"
+    },
+    "syntax": {
+      "keyword": "#ff7b72",
+      "string": "#a5d6ff",
+      "number": "#79c0ff",
+      "functionCall": "#d2a8ff",
+      "default": "#c9d1d9"
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "ui": "-apple-system, system-ui, sans-serif",
+      "mono": "'SF Mono', ui-monospace, Menlo, monospace"
+    },
+    "scale": {
+      "screenTitle": {
+        "size": 26,
+        "weight": 700
+      },
+      "sectionHeader": {
+        "size": 20,
+        "weight": 700
+      },
+      "prDetailTitle": {
+        "size": 19,
+        "weight": 700
+      },
+      "cardTitle": {
+        "size": 16,
+        "weight": 600
+      },
+      "body": {
+        "size": 14,
+        "lineHeight": 1.45
+      },
+      "meta": {
+        "size": 12
+      },
+      "micro": {
+        "size": 11
+      },
+      "code": {
+        "size": 12,
+        "lineHeight": 1.6
+      }
+    }
+  },
+  "spacing": {
+    "screenGutter": 20,
+    "prDetailGutter": 16,
+    "cardGap": 10,
+    "cardPadding": 14
+  },
+  "radius": {
+    "card": 16,
+    "cardLarge": 18,
+    "bubble": 14,
+    "bubbleTail": 4,
+    "codeBlock": 12,
+    "pill": 999,
+    "chartBar": 3
+  },
+  "layout": {
+    "tabBarPaddingBottom": 30,
+    "statusBarClearance": 70,
+    "minHitTarget": 44
+  },
+  "animation": {
+    "pulse": "1.6s ease-in-out infinite opacity 1→0.3",
+    "typingBlink": "1.2s staggered 0.2s",
+    "toggleTransition": "0.2s"
+  }
+}

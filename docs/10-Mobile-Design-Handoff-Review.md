@@ -2,23 +2,43 @@
 
 **Reviewed:** 2026-07-18
 
-**Source:** local `App building assistance/design_handoff_agentforge_mobile/`
+**Source:** owner-selected local
+`App building assistance/Final-App building assistance/design_handoff_agentforge_mobile/`
 
 **Status:** visual direction is strong; interaction, safety, state, and
 accessibility specifications are not implementation-final.
 
+**Progress and gap source of truth:**
+[`projects/AF-006-Mobile-Design-Ingestion.md`](projects/AF-006-Mobile-Design-Ingestion.md)
+
 ## Material reviewed
 
 - `README.md` and `CLAUDE-CODE-PROMPT.md`
-- `AgentForge App.dc.html` (interactive-prototype source)
-- `ios-frame.jsx`
-- Three PNG screen mocks
+- `AgentForge App.dc.html`, `support.js`, and `ios-frame.jsx`
+- `tokens.json`, `types.ts`, and `mock-data.json`
+- Prototype MCP and Forgejo API documents
+- Eleven exported screen captures and three larger concept mocks
 
-The HTML bundle references a missing `support.js`, so it is not runnable as the
-promised local interactive prototype outside its original design runtime. The
-PNG mocks and prototype also differ materially; where they conflict, the
-handoff says the prototype wins. Obsolete mocks should be watermarked or
-archived before implementation.
+The selected Final bundle now contains `support.js`, correcting the earlier
+handoff's missing-runtime defect. It is still not a self-contained production
+artifact: the runtime fetches pinned React, ReactDOM, and Babel from
+`unpkg.com`, evaluates generated JSX, and has no source/build/license package.
+The main audit browser also blocked local `file://` execution by URL policy, so
+its interactions were statically audited rather than claimed as runtime-tested.
+
+The eleven screen captures are landscape presentation crops.
+`10-add-agent-sheet.png` and `11-pairing.png` are byte-identical and show no
+sheet content.
+The three larger concept files contain JPEG payloads despite `.png` extensions,
+differ materially from the prototype, and contain generated/garbled copy.
+They are lineage, not implementation acceptance.
+
+The source bundle is not safe to commit unchanged: private host/repository
+examples appear in text and visible mocks, and the frame/generated-image
+provenance lacks source URLs and licenses. The tracked AF-006 intake therefore
+keeps exact hashes and the disclosure-safe token datum while quarantining all
+raw binaries and executable prototype material until redaction, regeneration,
+and AF-008 provenance clearance.
 
 ## What is working well
 
@@ -45,6 +65,10 @@ archived before implementation.
 | Changes | File rows and counts | Inspect code; currently incomplete |
 | Activity | Commits and events | Understand history |
 | Agents | Forgejo connection, endpoint rows, add/edit actions | Pair and manage endpoints |
+| Agent detail | Identity, health, permissions, connection, destructive controls | Inspect or administer one endpoint |
+| Summary | Range, metrics, commit chart, agent share, merge timeline | Understand activity; definitions unresolved |
+| Settings | Notifications, MCP, Forgejo server, about | Configure trusted services and preferences |
+| Pairing sheet | Command/token and handshake progress | Register an authenticated endpoint; states incomplete |
 
 Recommended reusable primitives:
 
@@ -174,7 +198,12 @@ Corrections:
   update logic.
 - README says a quick action prefixes a draft; the prototype replaces it and
   discards unsent text.
-- README says the HTML can be opened interactively, but `support.js` is absent.
+- README implies an offline/self-contained interactive prototype, but the
+  included runtime downloads code from `unpkg.com` and lacks reproducible
+  source/license material.
+- Add Agent and Pairing exports are byte-identical and omit the actual sheet.
+- Concept `.png` files contain JPEG payloads and generated text, so they cannot
+  be canonical UI/copy references.
 - “Final/pixel-perfect” conflicts with missing state, review, safety, and
   accessibility specs. Use “visual direction final; interaction and
   accessibility specification in progress.”
