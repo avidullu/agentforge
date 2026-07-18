@@ -62,7 +62,7 @@ void main() {
       addTearDown(() {
         if (f.existsSync()) f.deleteSync();
       });
-      final hits = scanStructuralHttps(files: [f], repoRoot: '');
+      final hits = scanStructuralHttps(files: [f]);
       expect(hits, isNotEmpty);
     });
 
@@ -78,7 +78,7 @@ void main() {
       addTearDown(() {
         if (f.existsSync()) f.deleteSync();
       });
-      final hits = scanStructuralHttps(files: [f], repoRoot: '');
+      final hits = scanStructuralHttps(files: [f]);
       expect(hits.length, greaterThanOrEqualTo(5));
     });
 
@@ -88,7 +88,7 @@ void main() {
       addTearDown(() {
         if (f.existsSync()) f.deleteSync();
       });
-      final hits = scanStructuralHttps(files: [f], repoRoot: '');
+      final hits = scanStructuralHttps(files: [f]);
       expect(hits, isEmpty);
     });
   });

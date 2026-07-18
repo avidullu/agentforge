@@ -208,7 +208,7 @@ AgentForgeConfig parseAndValidateBuildSafe(Map<String, dynamic> json) {
   _validateUrlScheme(urlScheme);
 
   final signing = json['signing'];
-  var fingerprints = <String>[];
+  final fingerprints = <String>[];
   var appleTeamId = '';
   if (signing != null) {
     if (signing is! Map) {

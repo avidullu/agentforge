@@ -107,7 +107,6 @@ class McpClient {
           res.data!,
           agentId: agent.id,
           agentName: agent.name,
-          source: 'http',
           sourceEndpoint: base,
         );
       }

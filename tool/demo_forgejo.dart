@@ -1,5 +1,7 @@
 import 'dart:io';
 
+// ignore_for_file: avoid_redundant_argument_values
+
 import 'package:agentforge/core/forgejo/forgejo_client.dart';
 import 'package:agentforge/core/settings/app_settings.dart';
 
