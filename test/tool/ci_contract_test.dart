@@ -24,10 +24,22 @@ void main() {
     expect(workflow, contains('persist-credentials: false'));
     expect(workflow, contains('name: required'));
     expect(workflow, contains('needs: [quality, build_smoke]'));
-    expect(workflow, contains('run_with_heartbeat.sh'));
-    expect(workflow, contains('test_heartbeat.sh'));
-    expect(workflow, contains('test_install_android_sdk.sh'));
+    // Product steps must go through the local harness (single source of truth).
+    expect(workflow, contains('run_local_ci.sh'));
+    expect(workflow, contains('bash tool/ci/run_local_ci.sh --lane quality'));
+    expect(
+      workflow,
+      contains('bash tool/ci/run_local_ci.sh --lane build-smoke'),
+    );
     expect(workflow, isNot(contains('actions/cache@')));
+
+    final harness = File(
+      '${repoRoot.path}/tool/ci/run_local_ci.sh',
+    ).readAsStringSync();
+    expect(harness, contains('run_with_heartbeat.sh'));
+    expect(harness, contains('test_heartbeat.sh'));
+    expect(harness, contains('test_install_android_sdk.sh'));
+    expect(harness, contains('check_diff_coverage.dart'));
   });
 
   test('all workflow actions stay pinned to immutable commit SHAs', () {
