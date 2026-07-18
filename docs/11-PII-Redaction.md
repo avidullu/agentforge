@@ -14,6 +14,13 @@ merge, pin the merge commit). Planning row: **AF-016**.
 
 ---
 
+> **Revision 7 note.** Review 256 at head `41fbf69` accepts the rev-6
+> architecture and asks for two plan-truth fixes: (1) no escape hatch that
+> overwrites tracked native synthetics—real generation writes only `*.local.*`
+> plus gitignored entitlements; (2) AF-016 row must carry a real PR/evidence
+> link (D4 or interim Forgejo PR link). Also locks Associated Domains to a
+> single path. D1–D4 and rev-6 Dart/native shape unchanged.
+
 > **Revision 5 note.** Review 250 (commit-pinned at `c49c668`, still applicable
 > after rev 4) blocks on: S1 enabling a fail-closed full-tree gate too early;
 > gen-file hygiene (real values must not overwrite tracked synthetic source);
@@ -581,17 +588,15 @@ here.
 | 3 | Structural gate forbids synthetic HTTPS | Rule = only exact synthetic origin + loopback fixtures (§8.1 public gate) |
 | 4 | Stale AF-016 evidence SHA | Tracker points at current tip / pending merge pin (§10, docs/08) |
 
-## 13. Requested re-review (rev 6)
+## 13. Requested re-review (rev 7)
 
 Please re-review exact PR tip after this revision.
 
-**Checklist for LGTM (review 253)**
+**Checklist for LGTM (review 256)**
 
-- [x] Concrete Dart selection mechanism (always-present selected library; no FS conditional import)
-- [x] Clean-clone Android/iOS with tracked synthetic natives + optional local overrides
-- [x] Decided Runner vs RunnerTests bundle-id strategy (explicit pbxproj for both)
-- [x] Public structural gate allows exact synthetic origin only
-- [x] AF-016 evidence not pinned to an obsolete rev-4 SHA
+- [x] No native escape hatch overwriting tracked synthetics
+- [x] Single Associated Domains / CODE_SIGN_ENTITLEMENTS path
+- [x] AF-016 row has real PR + immutable commit evidence
 
 On LGTM: merge AF-016 → fast-forward GitHub mirror → branch AF-009 from
 fresh `origin/main`.
