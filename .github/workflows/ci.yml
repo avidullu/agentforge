@@ -32,7 +32,10 @@ jobs:
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version: '3.44.6'
-          cache: true
+          # Disable actions/cache: runner has intermittent Invalid username/token
+          # when fetching github.com/actions/cache (PR #3 review 260; PR #7 runs
+          # 37/38 failed at ~5m before any repo checks). Prefer download over red CI.
+          cache: false
 
       - name: Install dependencies
         run: flutter pub get
