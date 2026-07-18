@@ -92,6 +92,7 @@ update its owning tracker row and changelog.
 | AF-013 | PII redaction S5: Android neutral namespace `dev.agentforge.app` + Kotlin source-path move; **kept** `applicationId`; manifest host placeholder; AVD custom-scheme CUJ (verified links stay under AF-002) | **PLANNED** | AF-011 | — |
 | AF-014 | PII redaction S6: iOS `AgentForge.xcconfig` include chain; preserve RunnerTests bundle id; entitlement host; `-showBuildSettings` both targets | **PLANNED** | AF-011 | — |
 | AF-015 | PII redaction S7: docs/handoff redaction + Forgejo-PR-link rewrite (SHA + GitHub mirror) + `docs/CONFIGURATION.md` + well-known templates/render + tracked-`web/` sweep | **PLANNED** | AF-010, AF-012, AF-013, AF-014 | — |
+| AF-017 | OpenAI Build Week submission (multi-PR): judge-safe synthetic demo, coherent golden path, Codex/GPT-5.6 evidence, hosted test build, media and compliance | **IN PROGRESS** | Owner license/model/session/hosting actions; hard deadline 2026-07-22 05:30 IST | [AF-017 tracker](projects/AF-017-OpenAI-Build-Week-Submission.md) |
 
 > **PII redaction dependency note (rev 3).** Each branch starts from a
 > fresh `origin/main` after its dependencies merge (topological, not
@@ -148,19 +149,29 @@ and the following statements are factually true:
 
 ## Next sequence
 
-1. Select the release/license model for AF-008.
-2. Decide release signing and Apple development/distribution strategy for
+1. Execute the deadline-critical
+   [AF-017 Build Week tracker](projects/AF-017-OpenAI-Build-Week-Submission.md),
+   beginning with owner registration/license/model/session decisions and the
+   judge-safe synthetic demo.
+2. Select the release/license model for AF-008; AF-017-B consumes this decision.
+3. Decide release signing and Apple development/distribution strategy for
    AF-002; deploy both association files.
-3. Run Gmail verified-link and persistence CUJs on physical Android/iOS
+4. Run Gmail verified-link and persistence CUJs on physical Android/iOS
    devices once AF-002 signing and association gates are resolved.
-4. Build AF-003 before treating in-app approval as a complete review workflow.
-5. Threat-model and implement AF-004/AF-005 before connecting real agents.
-6. Execute the PR-sized sequence in the
+5. Build AF-003 before treating in-app approval as a complete review workflow.
+6. Threat-model and implement AF-004/AF-005 before connecting real agents.
+7. Execute the PR-sized sequence in the
    [AF-006 mobile design tracker](projects/AF-006-Mobile-Design-Ingestion.md):
    safe intake first, semantic primitives and shell next, then gated review,
    endpoint, analytics and device work.
 
 ## Changelog
+
+- **2026-07-18 — AF-017 IN PROGRESS:** Started the canonical OpenAI Build Week
+  submission tracker for an AgentForge Developer Tools entry. The tracker owns
+  the deadline, owner actions, judge-safe synthetic demo, Codex/GPT-5.6
+  evidence, hosting, media, compliance, and final submission gates. No external
+  registration, license, session, video, or submission action is yet complete.
 
 - **2026-07-18 — AF-009 / S1 SHIPPED:** Merged Forgejo #7 as `93e06d7`
   from verified tip `543b005`; Forgejo and GitHub `main` were synchronized.
