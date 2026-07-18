@@ -157,6 +157,8 @@ and the following statements are factually true:
   builds, Chrome and Android 16 AVD UI smokes, a custom-scheme deep-link smoke,
   and the mock side-car receipt flow. Forgejo CI repeated the suite at 35.92%
   coverage and built both APK and Web artifacts. PR #1 merged as `7d5cb360`;
-  Forgejo and GitHub `main` were then verified at the same commit.
+  Forgejo and GitHub `main` were then verified at the same commit. Tracker
+  reconciliation is recorded in
+  [Forgejo #2](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/2).
 - **2026-07-18 — baseline:** Direct commits created M0-M5 prototype surfaces;
   no tracked-project ledger or documented phone acceptance existed.
