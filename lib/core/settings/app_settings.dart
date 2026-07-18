@@ -61,14 +61,24 @@ class AppSettings {
     return u;
   }
 
-  /// Normalized HTTPS origin for credential scoping (port 443 implied).
+  /// Normalized origin for credential scoping.
+  ///
+  /// Default HTTPS port 443 is omitted from the key. Non-443 ports are kept
+  /// so credentials never collide if validation is later relaxed (AF-011+).
   static String normalizeOrigin(String raw) {
     final normalized = normalizeBaseUrl(raw);
     final uri = Uri.tryParse(normalized);
     if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
       return normalized;
     }
-    return '${uri.scheme}://${uri.host}';
+    final scheme = uri.scheme.toLowerCase();
+    final host = uri.host.toLowerCase();
+    if (uri.hasPort &&
+        !((scheme == 'https' && uri.port == 443) ||
+            (scheme == 'http' && uri.port == 80))) {
+      return '$scheme://$host:${uri.port}';
+    }
+    return '$scheme://$host';
   }
 
   static String? baseUrlValidationError(String raw) {

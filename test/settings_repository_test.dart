@@ -3,6 +3,32 @@ import 'package:agentforge/core/settings/secure_store.dart';
 import 'package:agentforge/core/settings/settings_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// Production-like store: no key enumeration (like FlutterSecureStorage).
+class IndexOnlySecureStore implements SecureKeyValueStore {
+  IndexOnlySecureStore([Map<String, String>? seed])
+    : _data = Map<String, String>.from(seed ?? const {});
+
+  final Map<String, String> _data;
+
+  Map<String, String> get snapshot => Map.unmodifiable(_data);
+
+  @override
+  Future<String?> read(String key) async => _data[key];
+
+  @override
+  Future<void> write(String key, String value) async {
+    _data[key] = value;
+  }
+
+  @override
+  Future<void> delete(String key) async {
+    _data.remove(key);
+  }
+
+  @override
+  Future<List<String>> keys() async => const [];
+}
+
 void main() {
   const originA = 'https://forge.example.test';
   const originB = 'https://other.example.test';
@@ -29,6 +55,10 @@ void main() {
         store.snapshot.containsKey(SettingsRepository.kLegacyToken),
         isFalse,
       );
+      expect(
+        store.snapshot[SettingsRepository.kBoundOriginsIndex],
+        contains(originA),
+      );
     });
 
     test('never returns another origin PAT for the current origin', () async {
@@ -38,8 +68,7 @@ void main() {
       final loaded = await repo.load();
       expect(loaded.baseUrl, originB);
       expect(loaded.token, isEmpty);
-      expect(loaded.credentialState, isNot(CredentialLoadState.bound));
-      // Origin A token remains stored but is not used for B.
+      expect(loaded.credentialState, CredentialLoadState.originMismatch);
       expect(
         store.snapshot[SettingsRepository.tokenKeyForOrigin(originA)],
         'pat-a',
@@ -65,18 +94,15 @@ void main() {
 
         final loaded = await repo.load();
 
-        // (a) legacy key gone
         expect(
           store.snapshot.containsKey(SettingsRepository.kLegacyToken),
           isFalse,
         );
-        // (b) no PAT sent/loaded for the configured origin
         expect(loaded.token, isEmpty);
         expect(
           store.snapshot[SettingsRepository.tokenKeyForOrigin(originB)],
           isNull,
         );
-        // (c) UI state requires re-entry (mismatch/legacy wipe prompt)
         expect(
           loaded.credentialState,
           CredentialLoadState.legacyClearedRequiresReentry,
@@ -109,6 +135,11 @@ void main() {
     test('clearToken removes only the current origin key + legacy', () async {
       await repo.save(const AppSettings(baseUrl: originA, token: 'pat-a'));
       await store.write(SettingsRepository.tokenKeyForOrigin(originB), 'pat-b');
+      // Keep index consistent for B as production would after save.
+      await store.write(
+        SettingsRepository.kBoundOriginsIndex,
+        '["$originA","$originB"]',
+      );
       await repo.clearToken(origin: originA);
 
       expect(
@@ -119,6 +150,9 @@ void main() {
         store.snapshot[SettingsRepository.tokenKeyForOrigin(originB)],
         'pat-b',
       );
+      final index = store.snapshot[SettingsRepository.kBoundOriginsIndex] ?? '';
+      expect(index.contains(originA), isFalse);
+      expect(index.contains(originB), isTrue);
     });
 
     test('normalizeOrigin strips path for scoping', () async {
@@ -130,5 +164,73 @@ void main() {
         'pat',
       );
     });
+
+    test('normalizeOrigin keeps non-443 ports in the key', () {
+      expect(
+        AppSettings.normalizeOrigin('https://forge.example.test:8443'),
+        'https://forge.example.test:8443',
+      );
+      expect(
+        AppSettings.normalizeOrigin('https://forge.example.test'),
+        'https://forge.example.test',
+      );
+    });
+  });
+
+  group('production-equivalent store (no key enumeration)', () {
+    test(
+      'originMismatch works via bound-origins index without keys()',
+      () async {
+        final store = IndexOnlySecureStore();
+        final repo = SettingsRepository(store: store);
+
+        await repo.save(const AppSettings(baseUrl: originA, token: 'pat-a'));
+        // Simulate persisted base moving to B without a token for B.
+        await store.write(SettingsRepository.kBaseUrl, originB);
+
+        final loaded = await repo.load();
+        expect(loaded.token, isEmpty);
+        expect(loaded.credentialState, CredentialLoadState.originMismatch);
+        expect(loaded.needsCredentialReentry, isTrue);
+        // Prior-origin PAT remains stored but is not returned.
+        expect(
+          store.snapshot[SettingsRepository.tokenKeyForOrigin(originA)],
+          'pat-a',
+        );
+      },
+    );
+
+    test(
+      'loadForOrigin on new origin after bind forces reentry state',
+      () async {
+        final store = IndexOnlySecureStore();
+        final repo = SettingsRepository(store: store);
+        await repo.save(const AppSettings(baseUrl: originA, token: 'pat-a'));
+        final forB = await repo.loadForOrigin(originB);
+        expect(forB.token, isEmpty);
+        expect(forB.credentialState, CredentialLoadState.originMismatch);
+      },
+    );
+
+    test(
+      'load(currentOrigin:) never returns prior-origin PAT without keys()',
+      () async {
+        final store = IndexOnlySecureStore();
+        final repo = SettingsRepository(store: store);
+        await repo.save(const AppSettings(baseUrl: originA, token: 'pat-a'));
+
+        // App now targets B (e.g. build/config origin change) while A remains
+        // in secure storage under its scoped key + index entry.
+        final loaded = await repo.load(currentOrigin: originB);
+        expect(loaded.baseUrl, originB);
+        expect(loaded.token, isEmpty);
+        expect(loaded.credentialState, CredentialLoadState.originMismatch);
+        expect(loaded.needsCredentialReentry, isTrue);
+        expect(
+          store.snapshot[SettingsRepository.tokenKeyForOrigin(originA)],
+          'pat-a',
+        );
+      },
+    );
   });
 }
