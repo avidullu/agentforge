@@ -336,19 +336,35 @@ void main() {
   });
 
   group('generate_config CLI (no tracked mutation on failure paths)', () {
-    test('--release fails closed without writing when signing empty', () {
-      final env = Map<String, String>.from(Platform.environment)
-        ..remove('AGENTFORGE_CONFIG');
-      final result = Process.runSync(
-        dartBin,
-        ['run', 'tool/generate_config.dart', '--release'],
-        workingDirectory: repoRoot.path,
-        environment: env,
-      );
-      expect(result.exitCode, isNot(0));
-      final combined = result.stderr.toString() + result.stdout.toString();
-      expect(combined, contains('release mode'));
-      expect(combined, isNot(contains(repoRoot.path)));
+    test('--release fails closed inside an isolated repository root', () {
+      final fixtureRoot = Directory.systemTemp.createTempSync('af-cli-root-');
+      try {
+        _materializeIsolatedRoot(fixtureRoot, repoRoot, includeCli: true);
+        final selected = File(
+          '${fixtureRoot.path}/lib/core/config/generated/app_config.selected.dart',
+        );
+        final before = selected.readAsBytesSync();
+        final env = Map<String, String>.from(Platform.environment)
+          ..remove('AGENTFORGE_CONFIG');
+
+        final result = Process.runSync(
+          dartBin,
+          ['tool/generate_config.dart', '--release'],
+          workingDirectory: fixtureRoot.path,
+          environment: env,
+        );
+
+        expect(result.exitCode, isNot(0));
+        final combined = result.stderr.toString() + result.stdout.toString();
+        expect(combined, contains('release mode'));
+        expect(combined, isNot(contains(fixtureRoot.path)));
+        expect(combined, isNot(contains(repoRoot.path)));
+        expect(selected.readAsBytesSync(), before);
+      } finally {
+        if (fixtureRoot.existsSync()) {
+          fixtureRoot.deleteSync(recursive: true);
+        }
+      }
     });
 
     test('missing AGENTFORGE_CONFIG path does not leak absolute path', () {
@@ -368,14 +384,26 @@ void main() {
   });
 }
 
-void _materializeIsolatedRoot(Directory fixtureRoot, Directory realRepo) {
-  for (final rel in [
+void _materializeIsolatedRoot(
+  Directory fixtureRoot,
+  Directory realRepo, {
+  bool includeCli = false,
+}) {
+  final files = <String>[
     'config/agentforge.config.example.json',
     'config/agentforge.config.schema.json',
     'lib/core/config/generated/app_config.selected.dart',
     'agentforge-config.properties',
     'ios/Flutter/AgentForge.xcconfig',
-  ]) {
+  ];
+  if (includeCli) {
+    files.addAll([
+      'pubspec.yaml',
+      'tool/config_model.dart',
+      'tool/generate_config.dart',
+    ]);
+  }
+  for (final rel in files) {
     final from = File('${realRepo.path}/$rel');
     final to = File('${fixtureRoot.path}/$rel');
     to.parent.createSync(recursive: true);
