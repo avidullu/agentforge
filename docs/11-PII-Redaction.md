@@ -2,27 +2,24 @@
 
 **Type:** Privacy / maintainability / security defect
 
-**Status:** OPEN — revision 3 (addressing PR #3 second-pass review, request-changes)
+**Status:** OPEN — revision 4 (addresses third-pass review on PR #3)
 
-**Filed:** 2026-07-18 · **Revised:** 2026-07-18 (rev 3)
+**Filed:** 2026-07-18 · **Revised:** 2026-07-18 (rev 4)
 
-**Owner:** `avidullu`
+**Owner:** repository owner (username omitted from this tracked doc)
 
-**PR:** [Forgejo #3](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/3)
-(evidence link uses the private host only inside this in-flight planning PR;
-once merged, the public tracker cites SHA + GitHub-mirror evidence per §7.2.)
+**Evidence (D4 — no private host):** [Forgejo #3 @ c49c668](https://github.com/avidullu/agentforge/commit/c49c668ef51880f314f4c4ac141b1c2b0ebfb327)
+(when the PR branch is mirrored; after merge, update to the merge commit SHA on the public GitHub mirror). Planning row: **AF-016**.
 
 ---
 
-> **Revision 3 note.** Rev 2 was blocked by the second-pass review (id 246,
-> commit-pinned at head `9334af0`) for eight architectural reasons. This
-> revision is grounded in **four owner-locked decisions** (§1.1) that
-> collapse several findings outright, then resolves every remaining
-> finding. The biggest shifts from rev 2: the **application/bundle id is
-> kept** (no sandbox/App-Link breakage), the **Tailscale FQDN is the
-> primary redaction target**, and the workstream is re-derived as a
-> **topological** graph (not "sequential"), with PR #3 given its own
-> truthful planning row.
+> **Revision 4 note.** Third-pass review (conversation comment + reviews 247/248)
+> at head `c49c668` requested changes. Blocking items: (1) §2.1 re-published
+> the real blocklist into the tracked tree; (2) D1 allow-list selectors were
+> not concrete enough for a fail-closed gate; (3) clean-clone bootstrap
+> depended on non-portable pub hooks. Rev 4 fixes those and the P2 accuracy
+> notes (web file list, S1 signing gate, properties path, AF-016 wording).
+> Owner-locked decisions D1–D4 are unchanged.
 
 ## 1. Summary
 
@@ -44,53 +41,57 @@ in tracked source, native config, tests, and docs. Impact:
 |---|---|---|
 | D1 | **Keep** the application id / iOS bundle id = `com.<OWNER>.agentforge`. It is allow-listed provenance (like the canonical repo ref). | Collapses review-246 finding 6 entirely: no sandbox break, no App-Link re-verification, no token migration. |
 | D2 | **Neutralize the Kotlin source path** to `android/app/src/main/kotlin/dev/agentforge/app/` and Gradle namespace `dev.agentforge.app`. The `applicationId` stays `com.<OWNER>.agentforge` (path ≠ id). | Removes `<OWNER>` from the source tree path without touching Android identity. |
-| D3 | **The Tailscale FQDN MUST be redacted** from the tracked tree. It is the #1 redaction target. | Strictest option. Every `https://<HOST>/...` link in docs/tracker becomes SHA + GitHub-mirror evidence (§7.2). |
+| D3 | **The Tailscale FQDN MUST be redacted** from the tracked tree. It is the #1 redaction target. | Strictest option. Every private-host PR link becomes SHA + GitHub-mirror evidence (§7.2). |
 | D4 | **PR evidence** is `Forgejo #N @ <short-sha>` + a link to the equivalent commit on the public GitHub mirror `github.com/<OWNER>/agentforge`. | Immutable provenance; no private host in tracked links. |
 
-## 2. Evidence (masked, reproducible — review finding 8)
+## 2. Evidence (masked, reproducible — third-pass P0)
 
-### 2.1 Reproducible audit (NUL-safe, tracked files only)
+### 2.1 Reproducible audit (no live blocklist in the public tree)
 
-The rev-2 audit used `git ls-files | xargs` with private placeholders and
-could not be reproduced. This revision provides a **NUL-safe, copy-pasteable**
-PowerShell command and a **real per-category count** on a pinned commit.
+**Rule (third-pass P0):** this tracked document must never contain the
+owner-specific blocklist strings themselves. The blocklist lives only in
+the non-public secret file `$AGENTFORGE_PII_BLOCKLIST` (CI) / the operator
+runbook outside git.
 
-```powershell
-# From a clean checkout of origin/main (commit 37732b4). NUL-safe via Select-String.
-$patterns = 'avidullu|avis-pbook|tail651ec3|Avi Dullu|avis-msi|C:\\Users\\avidu'
-$files = git ls-files | ForEach-Object {
-  $f = $_
-  if (Select-String -Path $f -Pattern $patterns -Quiet -ErrorAction SilentlyContinue) { $f }
-}
-"matching files: $($files.Count)"
+**How to re-run the audit (operators):**
+
+1. Materialize the private blocklist file (newline-separated patterns) from
+   the Forgejo secret or local password manager — **never commit it**.
+2. From a clean checkout of the pin below, scan **tracked** files only with
+   a NUL-safe tool (`git ls-files -z` + `rg --null-data` / PowerShell
+   `Select-String` over `git ls-files` output).
+3. Record **counts only** in public docs / PR text.
+
+```text
+# Pseudocode — patterns come from $AGENTFORGE_PII_BLOCKLIST, not this file.
+# git ls-files -z | scan-with-blocklist-file | count-unique-paths
 ```
 
-**Verified result on `origin/main` @ `37732b4`:** **24 tracked files** match.
-(At PR #3 head `9334af0`: 25, because the bug doc itself adds one.) The rev-2
-claim of "27" was wrong; this matches the review's count exactly.
+**Verified result on `origin/main` @ `37732b4`:** **24 tracked files** match
+the private blocklist. (At planning head `c49c668` the count is higher only
+while intermediate planning text still lands; rev 4 is required to keep
+**zero** live blocklist strings in this file.)
 
-Per-category counts on `origin/main` @ `37732b4` (some files match several):
+Per-category **counts** on `origin/main` @ `37732b4` (opaque categories;
+patterns are not listed here):
 
-| Pattern | Files |
+| Category (masked) | Files |
 |---|---|
-| `avidullu` | 14 |
-| `avis-pbook` | 13 |
-| `tail651ec3` | 11 |
-| `Avi Dullu` | 1 |
-| `avis-msi` | 2 |
-| `C:\Users\avidu` | 2 |
+| Owner login token | 14 |
+| Private host product name token | 13 |
+| Private host DNS fragment token | 11 |
+| Display name token | 1 |
+| Machine hint token | 2 |
+| Local Windows user path token | 2 |
 
-> **Blocklist vs. public patterns.** The six patterns above are the
-> owner-specific blocklist and are **not** committed to the public tree
-> (§5.4). They are reproduced here only inside this in-flight planning PR
-> to make the audit verifiable; after merge, the public tracker cites the
-> masked counts and the pinned commit, not the patterns.
+Some files match more than one category. The private blocklist file is the
+authoritative pattern set for CI (§8).
 
 ### 2.2 Categories (masked)
 
 | Category | Masked token | Where (representative, tracked) |
 |---|---|---|
-| Private Tailscale FQDN | `<HOST>` | `lib/core/deep_links/deep_link.dart`, `lib/core/settings/app_settings.dart`, `test/deep_link_test.dart`, `test/forgejo_*_test.dart`, `android/.../AndroidManifest.xml`, `ios/Runner/Runner.entitlements`, `docs/well-known/*`, `tool/demo_avis_pbook.dart`, `docs/*.md`, `README.md`, UI strings |
+| Private Tailscale FQDN | `<HOST>` | `lib/core/deep_links/deep_link.dart`, `lib/core/settings/app_settings.dart`, `test/deep_link_test.dart`, `test/forgejo_*_test.dart`, `android/.../AndroidManifest.xml`, `ios/Runner/Runner.entitlements`, `docs/well-known/*`, `tool/demo_*.dart`, `docs/*.md`, `README.md`, UI strings |
 | Local Windows path | `<USERPATH>` | `HANDOFF.md`, `SESSION_HANDOFF.md` |
 | Owner identity | `<OWNER>` | `README.md`, `docs/08-*`, `docs/AGENT_MCP_CONTRACT.md`, `test/forgejo_models_test.dart`, `android/app/build.gradle.kts` (`applicationId` — **kept, D1**), `docs/well-known/*` |
 | Kotlin source path | `<OWNER>` (path segment) | `android/app/src/main/kotlin/com/<OWNER>/agentforge/` (**redacted via D2**) |
@@ -113,8 +114,7 @@ Once builds accept a configurable origin, an upgraded install could silently
 send an old PAT to a new host. **Note:** under D1 the application id is
 unchanged, so the secure-storage sandbox is preserved across the upgrade —
 which makes the origin-binding fix purely a *logic* change, not a data
-migration. This is significantly simpler than rev 2's migration story and
-is addressed in §5.5.
+migration. Addressed in §5.5.
 
 ## 4. Goals / non-goals
 
@@ -132,7 +132,7 @@ is addressed in §5.5.
   and require re-entry (no silent reuse).
 - Prevent regression with a guard that is **fail-closed at the canonical
   pre-merge gate** and consumes an owner-specific blocklist kept outside
-  the public tree (review-246 finding 4).
+  the public tree.
 - **Scope wording (precise).** "Current-tree/default sanitization": the
   checked-in tree contains no redacted identifiers by default. Git
   **history** and **author/committer metadata** are explicitly out of
@@ -145,10 +145,7 @@ is addressed in §5.5.
   regenerated). Tracked `web/` source **is** in scope (§7.3).
 - Re-licensing / distribution model (that is `AF-008`).
 - Rewriting git history (destructive; deferred).
-- Putting tokens or secrets into `--dart-define` (dart-defines are embedded
-  configuration, not a secret store). Rev 3 **removes** the stray
-  dart-define references that rev 2 left in §12/S1 (review-246 finding 5
-  cleanup).
+- Putting tokens or secrets into `--dart-define`.
 - Changing the application id / bundle id (D1).
 
 ## 5. Architecture (one schema, derived everywhere; build- vs release-validated)
@@ -180,298 +177,292 @@ is addressed in §5.5.
   checked-in `config/agentforge.config.example.json` uses synthetic values
   (`https://forge.example.test`, `com.example.agentforge`,
   `dev.agentforge.app`) so a fresh clone builds immediately.
-- `canonicalOwnerRepo` from rev 2 is removed — owner/repo is not a runtime
-  config value and stays as allow-listed provenance in docs.
+- Owner/repo is not a runtime config value; it stays as allow-listed
+  provenance in docs under D4.
 
 ### 5.2 Two validation modes (review-246 finding 5)
 
-Rev 2 conflated build validation with release validation. Rev 3 splits them:
-
-- **Build-safe validation** (runs on every analyze/test/build, including
-  CI and clean clones): origin is HTTPS, port **exactly 443** (reject, not
-  warn, any other port — review-246 finding 5), no userinfo/path/query;
-  `applicationId`/`gradleNamespace`/`urlScheme` non-empty and well-formed;
-  `schemaVersion` exactly the supported value. Missing/empty `signing`
-  fields are **allowed** at build time.
-- **Release/deployment validation** (runs only when rendering well-known
-  files for deployment): **fails closed** on missing/malformed
+- **Build-safe validation** (every analyze/test/build, including CI and
+  clean clones): origin is HTTPS, port **exactly 443** (reject any other
+  port), no userinfo/path/query; `applicationId`/`gradleNamespace`/
+  `urlScheme` non-empty and well-formed; `schemaVersion` exactly the
+  supported value. Missing/empty `signing` fields are **allowed** at
+  build time.
+- **Release/deployment validation** (only when rendering well-known files
+  for deployment): **fails closed** on missing/malformed
   `androidSha256Fingerprints` and `appleTeamId`, and on any non-empty
   placeholder remaining in rendered output.
 
-These are two entry points on the same generator:
-`dart run tool/generate_config.dart` (build) vs.
-`dart run tool/generate_config.dart --release` (deployment render).
+Entry points on the same generator:
 
-### 5.3 Generator + bootstrap (review-246 findings 2, 3)
+- `dart run tool/generate_config.dart` — build-safe
+- `dart run tool/generate_config.dart --release` — deployment render
+  (fails closed on signing / unresolved placeholders)
+
+### 5.3 Generator + bootstrap (third-pass P1 — no pub-hook dependency)
 
 `tool/generate_config.dart` is the single entry point. It reads the schema,
 runs the §5.2 build validation, and emits:
 
 - `lib/core/config/generated/app_config.gen.dart` — **`const`** Dart config
-  (see §5.4).
-- `android/agentforge-config.properties` (at the **repo root**, not under
-  `android/app/`), loaded in `build.gradle.kts` via
-  `rootProject.file("agentforge-config.properties")` (review-246 finding 3c
-  corrected: the rev-2 path resolved under the module).
+  (§5.4).
+- **`agentforge-config.properties` at the repository root** (not under
+  `android/app/`). Loaded in `android/app/build.gradle.kts` via
+  `rootProject.file("agentforge-config.properties")`.
 - `ios/Runner/Generated.xcconfig`, consumed at the **project level** so it
-  overrides target-level bundle ids; rev 3 also removes the per-target
-  `PRODUCT_BUNDLE_IDENTIFIER` overrides in `project.pbxproj` and lets the
-  xcconfig win (review-246 finding 3b).
-- Native scheme output: the Android manifest and both iOS plists register
-  the scheme via a generated placeholder, not a hard-coded literal
-  (review-246 finding 3b).
+  overrides target-level bundle ids; per-target `PRODUCT_BUNDLE_IDENTIFIER`
+  overrides in `project.pbxproj` are removed so the xcconfig wins.
+- Native scheme output: Android manifest and both iOS plists register the
+  scheme via a generated placeholder, not a hard-coded literal.
 
-**Bootstrap (review-246 finding 2 — clean clone + CI):**
+**Bootstrap (portable — third-pass P1):**
 
-- A **checked-in synthetic default** `app_config.gen.dart` is committed
-  (generated from `config/agentforge.config.example.json`), so a clean
-  clone builds with zero pre-steps. This file is tracked.
-- The generator runs as a **`pubspec.yaml` pre-build hook via
-  `hooks/pre_build.dart`** (Dart 3.5+ pub hooks) on every
-  `flutter pub get`/build, regenerating `app_config.gen.dart` from the
-  local `config/agentforge.config.json` if present, else from the example.
-- **No silent release fallback:** the release Web/APK job in CI sets
-  `AGENTFORGE_CONFIG` to the real (secret-protected) config file before
-  build; if it is absent, the release job fails closed rather than shipping
-  an example-config artifact (review-246 finding 2).
-- Local equivalent documented in `docs/CONFIGURATION.md`:
-  `cp config/agentforge.config.example.json config/agentforge.config.json`,
-  edit, then `flutter pub get`.
+1. **Checked-in synthetic default** `lib/core/config/generated/app_config.gen.dart`
+   is committed (generated from `config/agentforge.config.example.json`).
+   A clean clone **builds and tests with zero pre-steps**.
+2. **Explicit regeneration** (documented in `docs/CONFIGURATION.md` and
+   invoked in CI before any job that must reflect a non-example config):
+
+   ```bash
+   dart run tool/generate_config.dart
+   # release render only when deploying association files:
+   dart run tool/generate_config.dart --release
+   ```
+
+3. **CI:** the canonical Forgejo workflow runs the generator as a named step
+   before analyze/test/build when a real config is present; release jobs set
+   `AGENTFORGE_CONFIG` to the secret-backed config and **fail closed** if it
+   is missing (never ship an example-config release artifact).
+4. **Optional DX only:** a local shell helper `tool/bootstrap.sh` may wrap
+   `cp example → config` + `generate_config.dart`. **Pub hooks are not
+   required** and are not part of the correctness contract.
 
 ### 5.4 Dart design — `const`, not getters (review-246 finding 3a)
 
-Rev 2 described `AppSettings.defaultBaseUrl` / `trustedHost` as **getters**.
-The current call sites require compile-time constants:
-`settings_screen.dart:154-159`, `forgejo_models_test.dart:51-60`,
-`forgejo_providers_test.dart:79-83`, `widget_test.dart:16-44`. Rev 3
-corrects this:
-
-- `app_config.gen.dart` emits `const class AppConfig { static const String defaultBaseUrl = ...; static const String trustedHost = ...; static const String appScheme = ...; }` — **`const`**, not getters, so every existing `const` call site compiles after aliasing.
-- `AppSettings.defaultBaseUrl` / `trustedHost` become `static const` aliases that delegate to `AppConfig.*`, preserving the existing API surface so callers don't all change in the same PR.
-- `deep_link.dart`'s `kForgejoHost` becomes `const kForgejoHost = AppConfig.trustedHost;`.
-- **Non-secret guarantee:** the JSON Schema forbids property names
-  `token`/`secret`/`password`, and a unit test asserts the generated file
-  contains none of those identifiers. dart-defines are no longer referenced
-  anywhere (rev-2 cruft removed).
+- `app_config.gen.dart` emits
+  `const class AppConfig { static const String defaultBaseUrl = ...; ... }`
+  so existing `const` call sites compile after aliasing.
+- `AppSettings.defaultBaseUrl` / `trustedHost` become `static const` aliases
+  to `AppConfig.*`.
+- `deep_link.dart`'s `kForgejoHost` becomes
+  `const kForgejoHost = AppConfig.trustedHost;`.
+- **Non-secret guarantee:** schema forbids property names
+  `token`/`secret`/`password`; a unit test asserts the generated file
+  contains none of those identifiers.
 
 ### 5.5 Origin-bound credentials (review-246 finding 3; simplified by D1)
 
-Under D1 the app sandbox is unchanged across the upgrade, so this is a
-pure logic change:
-
 - Storage keys become origin-scoped: `forgejo_token::<normalizedOrigin>`.
-- `load(currentOrigin)` returns the PAT only if it was stored for that
-  origin; otherwise returns empty and surfaces a typed
-  `CredentialOriginMismatch` state the UI renders as "credential entered
-  for a different instance."
-- On origin change: **never** carry an old PAT to a new origin; prompt
-  re-entry. `clearToken(origin)` is scoped.
-- **Legacy key behavior (decided, not ambiguous as in rev 2):** the
-  pre-redaction key is `forgejo_token` with no origin bound. On first load
-  under the new code, the migration **deletes** the legacy key (it cannot
-  be attributed to any specific origin, so binding it would be a guess).
-  The user is prompted to re-enter the PAT for the current origin. This is
-  the safe choice rev 2 left ambiguous.
-- **Upgrade test:** seeds the legacy `forgejo_token` key, runs migration,
-  configures a non-legacy origin, and asserts (a) the legacy key is gone,
-  (b) no PAT is sent to the new origin, (c) the UI shows the mismatch
-  prompt. This is the proof an old token can never reach a new host.
+- `load(currentOrigin)` returns the PAT only if stored for that origin;
+  otherwise empty + typed `CredentialOriginMismatch` UI state.
+- On origin change: **never** carry an old PAT; prompt re-entry.
+- **Legacy key behavior:** pre-redaction key `forgejo_token` (no origin).
+  On first load under the new code, migration **deletes** the legacy key
+  (cannot attribute it to an origin). User re-enters PAT for the current
+  origin. Never auto-bind.
+- **Upgrade test:** seed legacy key → migrate → configure non-legacy origin
+  → assert (a) legacy key gone, (b) no PAT sent to new origin, (c) UI shows
+  mismatch prompt.
 
 ## 6. Native specifics (collapsed by D1/D2)
 
 ### 6.1 Android
 
 - `applicationId` **stays** `com.<OWNER>.agentforge` (D1).
-- `namespace` becomes `dev.agentforge.app`; the Kotlin source directory
-  moves from `android/app/src/main/kotlin/com/<OWNER>/agentforge/` to
-  `android/app/src/main/kotlin/dev/agentforge/app/`; `MainActivity.kt`
-  gets `package dev.agentforge.app`. Namespace and source package match,
-  so `AndroidManifest.xml`'s `.MainActivity` resolves.
-- **No debug suffix, no flavor gymnastics** (rev 2's `applicationIdSuffix`
-  is dropped — it was only needed for the identity-migration path that D1
-  eliminates, and it would have broken App-Link verification per
-  review-246 finding 6).
-- The manifest host is a placeholder `${forgejoHost}` filled from
+- `namespace` becomes `dev.agentforge.app`; Kotlin sources move to
+  `android/app/src/main/kotlin/dev/agentforge/app/`; package declaration
+  matches so `.MainActivity` resolves.
+- No debug `applicationIdSuffix` gymnastics (would break App-Link
+  verification under D1).
+- Manifest host is placeholder filled from
   `rootProject.file("agentforge-config.properties")` (§5.3).
-- **Verified-link CUJ depends on AF-002** (review-246 finding 7):
-  App-Link `autoVerify` needs a hosted `assetlinks.json` matching the
-  kept application id + signing fingerprint, which is AF-002's release-
-  signing work. Until AF-002 lands, the deep-link CUJ is **unverified
-  intent routing only**, recorded as such in the tracker.
+- **Verified-link CUJ depends on AF-002.** Until AF-002, deep-link CUJ is
+  **unverified intent routing only**.
 - **Verification bar:** `flutter build apk --debug` + install + launch on
-  an AVD + custom-scheme deep-link route on the installed build (CI runs
-  the build only; the AVD CUJ is a manual gate recorded in the row).
+  an AVD + custom-scheme route (CI runs the build; AVD CUJ is a manual
+  gate recorded in the row).
 
 ### 6.2 iOS
 
-- `PRODUCT_BUNDLE_IDENTIFIER` stays `com.<OWNER>.agentforge` (D1); the
-  per-target overrides in `project.pbxproj` are removed so the
-  `Generated.xcconfig` value is the single source.
-- The Associated Domains host in `Runner.entitlements` is generated from
-  `forgejo.origin`.
-- **Verification:** `xcodebuild -showBuildSettings` confirms the override
-  resolves; rendered plists/AASA parse with no unresolved placeholders;
-  iOS no-sign verification is **macOS-only** and explicitly skipped on
-  non-mac CI with a recorded reason (review-246 finding 6: verified
-  Universal Links also depend on AF-002's Apple Team ID).
+- `PRODUCT_BUNDLE_IDENTIFIER` stays `com.<OWNER>.agentforge` (D1); remove
+  per-target overrides so `Generated.xcconfig` is the single source.
+- Associated Domains host generated from `forgejo.origin`.
+- **Verification:** `xcodebuild -showBuildSettings`; rendered plists/AASA
+  parse with no unresolved placeholders; macOS-only no-sign checks skipped
+  on non-mac CI with a recorded reason.
 
-## 7. Docs, handoffs, and tracked `web/` (review-246 findings 7, 8 + scope clarification)
+## 7. Docs, handoffs, and tracked `web/`
 
 ### 7.1 Handoffs and user-facing docs
 
-- `<USERPATH>` in `HANDOFF.md` / `SESSION_HANDOFF.md` → "shared project-
-  memory store (path resolved by the `claude-sync` tooling per machine)."
-- `<HOST>` in user-facing docs → `<your-forgejo-host>` + the override step
-  in a new `docs/CONFIGURATION.md`.
-- `<REALNAME>` and `<MACHINE>` removed from test fixtures / UI hints and
-  replaced with synthetic equivalents.
+- `<USERPATH>` → "shared project-memory store (path resolved by sync tooling
+  per machine)."
+- `<HOST>` → `<your-forgejo-host>` + override steps in `docs/CONFIGURATION.md`.
+- `<REALNAME>` / `<MACHINE>` → synthetic fixtures / UI hints.
 
-### 7.2 Forgejo PR evidence (D4, scope clarification)
+### 7.2 Forgejo PR evidence (D4)
 
-The review's scope clarification is accepted in full: keep public
-owner/repo identity and immutable SHA provenance; the **private Tailscale
-FQDN is a separate classification decision and D3 redacts it**. Therefore
-all `https://<HOST>/.../pulls/N` links in `docs/08-*`, `README.md`, and
-this bug doc become:
+All private-host PR URLs in tracker/docs become:
 
 ```md
 [Forgejo #N @ <short-sha>](https://github.com/<OWNER>/agentforge/commit/<full-sha>)
 ```
 
-i.e. PR number + short SHA + a link to the equivalent commit on the public
-GitHub mirror. No private host appears in tracked links.
+No private host appears in tracked links.
 
-### 7.3 Tracked `web/` (review-246 finding 8)
+### 7.3 Tracked `web/` (third-pass P2)
 
-`web/` is **tracked source** in this repo (generated output is
-`build/web/`, gitignored). S7 sweeps `web/index.html`, `web/manifest.json`,
-and `web/main.dart.js` for `<HOST>`/`<OWNER>` and either redacts or
-regenerates them from the example config. **Release-Web build is added to
-the workstream DoD** (§11) because the generated Dart config affects Web.
+Tracked `web/` on current `main` is only:
 
-## 8. CI and guard (review-246 finding 4 — fail-closed canonical gate)
+- `web/index.html`
+- `web/manifest.json`
+- `web/favicon.png`
+- `web/icons/*`
 
-- **Canonical pre-merge gate (Forgejo Actions) runs in BLOCKLIST mode and
-  FAILS CLOSED.** `$AGENTFORGE_PII_BLOCKLIST` is materialized from a
-  Forgejo secret to a `600`-mode temp file on the runner, consumed by
-  `tool/check_no_pii.dart`, and deleted in a `finally` step. The blocklist
-  file is **never** echoed, logged, or uploaded as an artifact
-  (review-246 finding: the blocklist itself is the PII).
-- The guard checks **all tracked scopes** — `lib/`, `test/`, `tool/`,
-  `android/`, `ios/`, `web/`, `docs/`, plus repo-root markdown — and
-  covers content, paths, and filenames with case-insensitive and
-  path-segment variants. Generic, not host-literal-only.
-- **Public/fork secondary gate (`.github/workflows/ci.yml` on GitHub):**
-  runs **structural mode only** (no secret), asserting the synthetic
-  example is in use and no `https://` host literal appears in
-  `lib/`/`test/`/`tool/`. This is a regression backstop, not the privacy
-  claim — the privacy claim rests on the canonical blocklist gate.
-- **Allow-list (narrow, structural selectors — review-246 finding on
-  selector format):** each entry is a regex + scope pair, e.g.
-  `^README\.md$:^\\| Canonical \\| .*github\\.com/<OWNER>/agentforge`.
-  The allow-list lives in the same non-public blocklist file. Entries are
-  regex-based (not line numbers — line numbers are fragile), evaluated
-  against the matching line so a change to an allow-listed line's content
-  re-triggers review.
+**Not in scope:** `web/main.dart.js` or anything under `build/web/`
+(gitignored build output). S7 sweeps only the tracked paths above for
+`<HOST>`/`<OWNER>` and regenerates from example config as needed.
+**Release-Web build** remains in workstream DoD (§11) because generated
+Dart config affects Web.
 
-## 9. Implementation strategy — topological, one row per PR (review-246 finding 7)
+## 8. CI and guard (fail-closed canonical gate + concrete D1 allow-list)
+
+- **Canonical pre-merge gate (Forgejo Actions)** runs in **BLOCKLIST mode**
+  and **FAILS CLOSED**. `$AGENTFORGE_PII_BLOCKLIST` is materialized from a
+  Forgejo secret to a `600`-mode temp file, consumed by
+  `tool/check_no_pii.dart`, deleted in `finally`. Never echoed, logged, or
+  uploaded.
+- Guard checks **all tracked scopes** — `lib/`, `test/`, `tool/`,
+  `android/`, `ios/`, `web/`, `docs/`, plus repo-root markdown — covering
+  content, paths, and filenames (case-insensitive / path-segment variants).
+- **Public/fork secondary gate** (`.github/workflows/ci.yml`): structural
+  mode only (no secret) — synthetic example in use; no raw `https://`
+  host literals in `lib/`/`test/`/`tool/`. Backstop only; privacy claim is
+  the canonical gate.
+
+### 8.1 Allow-list format (secret file, not committed)
+
+The same non-public blocklist file may contain an `allow:` section. Each
+entry is a **path regex + line regex** pair (not line numbers). A hit that
+does not match an allow entry is a hard fail.
+
+### 8.2 Concrete D1 / provenance allow-list selectors (third-pass P1)
+
+These are the **only** intentional owner-string survivals after the
+workstream. Implement them as allow entries (illustrative regexes; final
+patterns live in the secret file):
+
+| ID | Path selector (regex) | Line selector (regex) | Why |
+|---|---|---|---|
+| A1 | `^android/app/build\.gradle\.kts$` | `applicationId\s*=\s*"com\.<OWNER>\.agentforge"` | D1 application id |
+| A2 | `^android/app/build\.gradle\.kts$` | (optional) comments that only restate A1 | D1 docs in Gradle |
+| A3 | `^ios/Runner\.xcodeproj/project\.pbxproj$` | `PRODUCT_BUNDLE_IDENTIFIER\s*=\s*com\.<OWNER>\.agentforge` | D1 bundle id (until fully xcconfig-only; then only Generated.xcconfig) |
+| A4 | `^ios/Runner/Generated\.xcconfig$` | `PRODUCT_BUNDLE_IDENTIFIER=com\.<OWNER>\.agentforge` | D1 after S6 |
+| A5 | `^README\.md$` | canonical mirror table cell linking `github\.com/<OWNER>/agentforge` | D4 provenance |
+| A6 | `^docs/08-Implementation-Plan-and-Milestones\.md$` | D4-format evidence links only: `github\.com/<OWNER>/agentforge/commit/` | Tracker evidence |
+| A7 | `^docs/CONFIGURATION\.md$` | example showing `com\.<OWNER>\.agentforge` as the *kept* id shape | Operator docs |
+
+**Hard rules:**
+
+- Any other match of owner/host/name/path tokens in tracked files → **fail**.
+- Changing an allow-listed line’s *content* so the line regex no longer
+  matches → **fail** (forces re-review of provenance exceptions).
+- The planning doc and all public docs use **masked** tokens only; they
+  must not embed the live blocklist patterns.
+
+## 9. Implementation strategy — topological, one row per PR
 
 **Rule:** each branch starts from a **fresh `origin/main` after all its
-dependencies have merged** (not "sequential off the previous branch").
-PR #3 (this planning PR) gets its **own** ledger row — the workstream is
-**8 shippable PRs**, not 7.
+dependencies have merged**. PR #3 is **AF-016** (planning only). Workstream
+= **8 shippable PRs**.
 
 | Step | Ledger | Scope | Depends on | CI gate (per PR) |
 |---|---|---|---|---|
-| S0 | AF-016 | **This planning PR.** Lands the approved bug doc + tracker rows + stale-PR-description fix. No code. | — | docs-only; format/analyze/test unchanged |
-| S1 | AF-009 | Schema + generator (build + release validation) + pub-hook bootstrap + checked-in synthetic `app_config.gen.dart` + structural `check_no_pii` scaffold + CI wiring (blocklist gate fail-closed). **Report-only guard against synthetic fixtures — no source/test cleanup yet** (review-246 finding 1). | AF-016 | analyze clean; generator produces synthetic output; structural guard green on a synthetic fixture; release job fails closed on missing signing |
-| S2 | AF-010 | Origin-bound credential store + legacy-key deletion migration + upgrade test (D1 ⇒ no sandbox issue) | AF-009 | new tests green; legacy-key-deletion test passes; coverage ≥ 29% |
-| S3 | AF-011 | Wire Dart source to `AppConfig` (`deep_link.dart`, `app_settings.dart`, UI strings, providers) via **const aliases**; remove `<HOST>` literals from `lib/` | AF-010 (review-246 finding 7: origin changes cannot land before origin-bound credentials) | deep-link + provider tests green with synthetic config; blocklist guard green on `lib/` |
-| S4 | AF-012 | Tests/tool swap to synthetic fixtures; rename `tool/demo_avis_pbook.dart` → `tool/demo_forgejo.dart`; remove `<REALNAME>`/`<MACHINE>` | AF-011 | `flutter test --coverage` ≥ 29%; blocklist guard green on `test/`+`tool/` |
-| S5 | AF-013 | Android: neutral namespace + source-path move (D2); kept `applicationId` (D1); manifest host placeholder; AVD custom-scheme CUJ (verified links → AF-002) | AF-011 (review-246 finding 7: Dart rejects new host otherwise) | `flutter build apk --debug`; AVD install+launch+custom-scheme route (manual, recorded) |
-| S6 | AF-014 | iOS: remove per-target bundle-id overrides; entitlement host from config; `-showBuildSettings`; rendered plist/AASA validation; macOS no-sign | AF-011 | settings resolve; plists/AASA valid, no unresolved placeholders |
-| S7 | AF-015 | Docs/handoff redaction + Forgejo-PR-link rewrite (D4) + `docs/CONFIGURATION.md` + well-known templates/render + tracked-`web/` sweep | AF-010, AF-012, AF-013, AF-014 (review-246 finding 7: not AF-003) | blocklist gate green on `main`; release-Web build green; docs render |
+| S0 | AF-016 | **Planning only:** approved bug doc + tracker rows. No product code. | — | docs-only; format/analyze/test unchanged |
+| S1 | AF-009 | Schema + generator (build + release **render** validation unit tests) + checked-in synthetic `app_config.gen.dart` + structural `check_no_pii` scaffold + CI wiring for fail-closed blocklist gate. **Report-only** guard against synthetic fixtures — no source/test cleanup yet. | AF-016 | analyze clean; generator produces synthetic output; structural guard green on synthetic fixture; `generate_config.dart --release` unit test fails closed on empty signing |
+| S2 | AF-010 | Origin-bound credential store + legacy-key deletion migration + upgrade test | AF-009 | new tests green; legacy-key-deletion test passes; coverage floor held |
+| S3 | AF-011 | Wire Dart source to `AppConfig` via **const aliases**; remove `<HOST>` literals from `lib/` | AF-010 | deep-link + provider tests green with synthetic config; blocklist green on `lib/` |
+| S4 | AF-012 | Tests/tool swap to synthetic fixtures; rename demo tool; remove `<REALNAME>`/`<MACHINE>` | AF-011 | `flutter test --coverage` holds floor; blocklist green on `test/`+`tool/` |
+| S5 | AF-013 | Android: neutral namespace + source-path move (D2); kept `applicationId` (D1); manifest host placeholder; AVD custom-scheme CUJ (verified links → AF-002) | AF-011 | `flutter build apk --debug`; AVD install+launch+custom-scheme (manual, recorded) |
+| S6 | AF-014 | iOS: remove per-target bundle-id overrides; entitlement host from config; `-showBuildSettings`; rendered plist/AASA validation | AF-011 | settings resolve; plists/AASA valid |
+| S7 | AF-015 | Docs/handoff redaction + D4 link rewrite + `docs/CONFIGURATION.md` + well-known templates/render + tracked-`web/` sweep (§7.3 list only) | AF-010, AF-012, AF-013, AF-014 | blocklist green on `main`; release-Web build green; docs render |
 
-> **Verified-link gates** (App-Link `autoVerify`, Universal Links) remain
-> under **AF-002** (release signing), not in this workstream
-> (review-246 finding 7). The custom-scheme CUJ in S5 is unverified intent
-> routing until AF-002.
+> **Verified-link gates** stay under **AF-002**, not this workstream.
 
-## 10. Tracker updates (added in this revision)
+## 10. Tracker updates
 
-- Adds ledger rows **AF-016 (this PR), AF-009…AF-015** (8 total) to
-  `docs/08-Implementation-Plan-and-Milestones.md` with the dependencies
-  from §9.
-- Rewrites prior Forgejo PR evidence links in `docs/08-*` to the D4
-  format (PR-number + short-SHA + GitHub-mirror link), since the act of
-  editing the tracker in this PR already touches those lines.
-- Changelog entry updated to rev 3.
+- Ledger rows **AF-016 (planning), AF-009…AF-015** in
+  `docs/08-Implementation-Plan-and-Milestones.md`.
+- Changelog entry for rev 4.
 
-## 11. Acceptance criteria (Definition of Done for the AF-009 workstream)
+## 11. Acceptance criteria (workstream DoD)
 
 - [ ] Canonical Forgejo Actions gate runs `tool/check_no_pii.dart` in
-      **blocklist mode, fail-closed**, on every PR and on `main`; the
-      blocklist secret is materialized to a `600` temp file and never
+      **blocklist mode, fail-closed**; secret to `600` temp file; never
       logged/uploaded.
-- [ ] No **tracked** file under `lib/`, `test/`, `tool/`, `android/`,
-      `ios/`, `web/`, `docs/`, or repo-root markdown contains `<HOST>`,
-      `<USERPATH>`, `<REALNAME>`, `<MACHINE>`, or the `<OWNER>` source-path
-      segment — except the narrow, regex-scoped provenance allow-list
-      (`com.<OWNER>.agentforge` application id; canonical repo reference).
-- [ ] A clean clone builds and runs against the checked-in synthetic
-      `app_config.gen.dart` with **zero** pre-steps; release jobs fail
-      closed on missing real config.
-- [ ] One schema → all consumers (Dart const, Android properties, Xcode
-      xcconfig, native scheme, well-known JSON); generator cross-checks
-      and rejects drift; build vs release validation split enforced.
-- [ ] Credentials are origin-bound; legacy `forgejo_token` is deleted on
-      migration; upgrade test proves no PAT reaches a different origin.
-- [ ] `flutter analyze --fatal-infos`, `flutter test --coverage` (≥ 29%),
-      `dart format --set-exit-if-changed`, `flutter build apk --debug`,
-      **and `flutter build web --release`** all pass (release-Web added
-      per review-246 finding 8).
-- [ ] Rendered well-known JSON/plists parse with no unresolved
-      placeholders; iOS settings verified via `-showBuildSettings` (macOS
-      no-sign on mac only).
-- [ ] `docs/CONFIGURATION.md` documents the schema, generator, pub hook,
-      overrides, and the no-secrets rule.
-- [ ] Ledger rows AF-016 + AF-009…AF-015 present with accurate status,
-      dependencies, and PR links; changelog updated; stale Forgejo-PR
-      evidence rewritten to D4 format.
+- [ ] No tracked file under the listed scopes contains redacted tokens
+      except the **concrete D1/D4 allow-list** in §8.2.
+- [ ] Clean clone builds/tests against checked-in synthetic
+      `app_config.gen.dart` with **zero** required pre-steps; release jobs
+      fail closed on missing real config; generator is explicit CI step.
+- [ ] One schema → all consumers; build vs release validation split
+      enforced; properties path = repo-root
+      `agentforge-config.properties`.
+- [ ] Credentials origin-bound; legacy key deleted; upgrade test proves no
+      cross-origin PAT reuse.
+- [ ] `flutter analyze --fatal-infos`, `flutter test --coverage` (floor),
+      format gate, `flutter build apk --debug`, and
+      `flutter build web --release` pass at end state.
+- [ ] Rendered well-known JSON/plists clean; iOS settings verified on macOS
+      where applicable.
+- [ ] `docs/CONFIGURATION.md` documents schema, generator, CI steps,
+      overrides, no-secrets rule.
+- [ ] Ledger AF-016 + AF-009…AF-015 accurate; D4 evidence only.
 
-## 12. Finding-by-finding response (second-pass review, id 246)
+## 12. Finding-by-finding response
 
-| # | Finding | Resolution in rev 3 |
+### Second-pass review (id 246) — carried from rev 3
+
+| # | Finding | Resolution |
 |---|---|---|
-| 1 | S1 guard can't pass staged sequence | S1 runs a **report-only** guard against **synthetic fixtures**; source/test cleanup is deferred to S3/S4. Every intermediate PR stays green. (§9 S1) |
-| 2 | No clean-clone/CI bootstrap for gitignored inputs | Checked-in synthetic `app_config.gen.dart` + pub-hook pre-build regeneration; release jobs fail closed on missing real config. (§5.3) |
-| 3 | Generator graph misses consumers + API/path errors | (a) `AppConfig.*` are **`const`**, not getters — existing const call sites compile; (b) native scheme via generated placeholder, per-target iOS bundle-id overrides removed; (c) `rootProject.file("agentforge-config.properties")` at repo root. (§5.3, §5.4, §6.1) |
-| 4 | Canonical CI fail-open for privacy claim | Canonical gate = **blocklist mode, fail-closed**, secret materialized to `600` temp file, never logged; checks all tracked scopes + content/path/filename. (§8) |
-| 5 | Origin & association validation inconsistent | **Build-safe vs release-validation split**; port ≠ 443 **rejected** (not warned); empty signing fields allowed at build, fail-closed at release. (§5.2) |
-| 6 | Release/debug identity + credential migration incomplete | **D1 keeps the application id** ⇒ no sandbox break, no App-Link re-verification, no token migration. Debug-suffix idea dropped. (§1.1 D1, §6.1) |
-| 7 | Ledger/dependency graph wrong | PR #3 gets its own row (**AF-016**); 8 PRs total; **topological** deps (branch from fresh `origin/main` after deps merge); AF-011→AF-010, AF-013/014→AF-011, AF-015→AF-010/012/013/014; AF-003 dependency removed; verified-link gates stay under AF-002. (§9) |
-| 8 | Audit not reproducible | NUL-safe PowerShell + pinned commit `37732b4` + **real count 24** + per-category table; release-Web build added to DoD. (§2.1, §11) |
+| 1 | S1 guard can't pass staged sequence | S1 report-only + synthetic fixtures; cleanup in S3/S4 (§9) |
+| 2 | No clean-clone bootstrap | Checked-in synthetic gen + **explicit** generator/CI (no pub-hook requirement) (§5.3) |
+| 3 | Generator graph / path errors | `const` AppConfig; root `agentforge-config.properties`; native placeholders (§5.3–5.4) |
+| 4 | Canonical CI fail-open | Fail-closed blocklist gate + §8.2 allow-list (§8) |
+| 5 | Origin/association validation | Build vs release split; port ≠ 443 reject (§5.2) |
+| 6 | Identity / credential migration | D1 keeps application id (§1.1, §6) |
+| 7 | Ledger/dependency graph | AF-016 + topological 8 PRs (§9) |
+| 8 | Audit not reproducible | Opaque counts + operator procedure; **no live patterns in tree** (§2.1) |
 
-**Scope clarification accepted:** keep public owner/repo + immutable SHA
-provenance; private Tailscale FQDN redacted (D3); PR evidence = SHA +
-GitHub-mirror link (D4). (§1.1, §7.2)
+### Third-pass review (comment 1622 / reviews 247–248) — rev 4
 
-**Clerical:** PR description rewritten to rev-3 design; broken refs
-(`AF-010-history`, `§3 finding C`, `§"ground-truth grep"`) removed; file
-count corrected to 24/25.
+| # | Finding | Resolution in rev 4 |
+|---|---|---|
+| P0 | Live blocklist / private host in planning doc | §2.1 rewritten; header uses D4 evidence only; zero live owner/host/name/path strings in this file |
+| P1 | D1 vs fail-closed gate | §8.2 concrete path+line allow-list selectors |
+| P1 | Pub-hook bootstrap | Removed as correctness dependency; synthetic gen + explicit generator/CI (§5.3) |
+| P2 | `web/main.dart.js` | Removed; only real tracked web paths (§7.3) |
+| P2 | S1 signing over-claim | S1 gate = `--release` unit test fail-closed, not a full release job (§9) |
+| P2 | Properties path drift | Single path: repo-root `agentforge-config.properties` (§5.3) |
+| P2 | AF-016 wording | Planning doc + tracker rows only (§9 S0 / §10) |
 
-## 13. Requested third-pass review
+## 13. Requested fourth-pass review
 
-Re-requesting review on PR #3 after this revision. The four owner-locked
-decisions (§1.1) are not re-opened. Open questions for the reviewer:
+Re-requesting review on PR #3 after rev 4. Open questions from third-pass
+are answered as follows:
 
-- Confirm the **8-PR topological graph** (§9) and the AF-016 planning row
-  for this PR match your expectation.
-- Confirm the **legacy-key deletion** choice in §5.5 (delete + re-prompt,
-  never auto-bind) is acceptable.
-- Confirm the **canonical-blocklist fail-closed gate** in §8 satisfies the
-  privacy-claim bar.
+1. **8-PR graph / AF-016:** Confirmed; AF-016 is planning-only.
+2. **Legacy-key deletion:** Unchanged LGTM position — delete + re-prompt.
+3. **Fail-closed gate:** Implementable via §8 + §8.2 without re-publishing
+   the blocklist in-tree.
 
-On LGTM: merge PR #3 → fast-forward GitHub mirror → branch the first
-implementation slice (AF-009) from fresh `origin/main` → full verify →
-ready-for-review Forgejo follow-up PR.
+**Checklist for LGTM**
+
+- [x] Zero real owner/host/name/path strings in this planning doc
+- [x] D4-format evidence links only
+- [x] Explicit D1 allow-list selectors in §8.2
+- [x] Bootstrap without non-portable pub hooks
+- [x] §7.3 web list; S1 signing gate; properties path wording
+
+On LGTM: merge AF-016 → fast-forward GitHub mirror → branch AF-009 from
+fresh `origin/main` → implement → full verify → ready-for-review follow-up.

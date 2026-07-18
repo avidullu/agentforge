@@ -82,8 +82,8 @@ must update its row and this document's changelog.
 | AF-006 | Design-handoff implementation and WCAG 2.1 AA pass | **PLANNED** | AF-003 information architecture | — |
 | AF-007 | CI/release hardening: format, coverage floor, Android build, pinned toolchain | **SHIPPED IN AF-001** | Forgejo run 12 green | [Forgejo #1](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/1) |
 | AF-008 | Public-code/private-runtime licensing and data-boundary decision | **DECISION NEEDED** | Owner selects license/distribution model | — |
-| AF-016 | PII redaction S0: **planning PR** — approved bug doc + tracker rows + stale-PR-description fix (umbrella bug: [docs/11-PII-Redaction.md](11-PII-Redaction.md)) | **IN REVIEW** | — | [Forgejo #3](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/3) |
-| AF-009 | PII redaction S1: one versioned config schema + generator (build- and release-validated) + pub-hook bootstrap + checked-in synthetic `app_config.gen.dart` + report-only structural `check_no_pii` scaffold + canonical CI blocklist gate (fail-closed) | **PLANNED** | AF-016 | — |
+| AF-016 | PII redaction S0: **planning only** — approved bug doc + tracker rows (umbrella: [docs/11-PII-Redaction.md](11-PII-Redaction.md)) | **IN REVIEW** | — | [Forgejo #3 @ c49c668+](https://github.com/avidullu/agentforge/commit/c49c668ef51880f314f4c4ac141b1c2b0ebfb327) |
+| AF-009 | PII redaction S1: one versioned config schema + generator (build + release-render validation) + checked-in synthetic `app_config.gen.dart` + explicit generator/CI step + report-only structural `check_no_pii` scaffold + canonical CI blocklist gate (fail-closed) | **PLANNED** | AF-016 | — |
 | AF-010 | PII redaction S2: origin-bound credential store + legacy-key deletion migration + upgrade test (app id unchanged ⇒ no sandbox issue) | **PLANNED** | AF-009 | — |
 | AF-011 | PII redaction S3: wire Dart source to generated **const** `AppConfig` (`deep_link.dart`, `app_settings.dart`, UI strings, providers); remove host literals from `lib/` | **PLANNED** | AF-010 | — |
 | AF-012 | PII redaction S4: tests/tool swap to synthetic fixtures; rename demo tool; remove display name / machine hint | **PLANNED** | AF-011 | — |
@@ -156,6 +156,13 @@ and the following statements are factually true:
 6. Apply the component/state/accessibility plan in the design review.
 
 ## Changelog
+
+- **2026-07-18 — AF-016 / PR #3 rev 4 (third-pass resolution):** Planning
+  doc no longer embeds live blocklist strings or private-host URLs (D4
+  evidence only). §8.2 adds concrete D1 allow-list selectors. Bootstrap is
+  checked-in synthetic gen + explicit generator/CI (pub hooks not required).
+  S1 signing gate, web file list, and properties path wording corrected.
+  See [docs/11-PII-Redaction.md](11-PII-Redaction.md) §12 third-pass table.
 
 - **2026-07-18 — AF-009 BUG REVISED (rev 3, addressing PR #3 second-pass
   review id 246):** The second-pass review at head `9334af0` requested
