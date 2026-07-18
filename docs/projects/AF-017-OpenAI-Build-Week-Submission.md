@@ -39,6 +39,8 @@ parallel trackers.
   license, depends on private infrastructure for its live data, lacks a
   judge-safe seeded demo and hosted test build, does not yet package Codex /
   GPT-5.6 evidence, and has no public video or completed Devpost entry.
+- AF-017-A, the canonical tracker bootstrap, shipped through Forgejo PR #9 as
+  merge `798b563`; the overall AF-017 lifecycle remains **IN PROGRESS**.
 - Product claims must stay narrow and honest. Diff/check review, authenticated
   production agent transport, verified physical-device links, full WCAG
   acceptance, and several final-design flows remain unfinished in their owning
@@ -92,7 +94,7 @@ PR must update its own row, affected gates/risks, and this document's changelog.
 
 | ID | Deliverable | Status | Dependency / acceptance gate | PR |
 |---|---|---|---|---|
-| AF-017-A | Canonical tracker, judging thesis, owner-action register, deadline, and repository/handoff links | **IN REVIEW** | Planning only; facts verified against official rules and shipped repository state | [Forgejo #9](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/9) |
+| AF-017-A | Canonical tracker, judging thesis, owner-action register, deadline, and repository/handoff links | **SHIPPED** | Merged 2026-07-18; exact-head MSI suite green | [Forgejo #9](https://avis-pbook.tail651ec3.ts.net/avidullu/agentforge/pulls/9) · tip [`0b098a8`](https://github.com/avidullu/agentforge/commit/0b098a8890917793f52ae6d31affc5819f9f6833) · merge [`798b563`](https://github.com/avidullu/agentforge/commit/798b563374fd9f5f4de4f0dab719ba81ab9c8101) |
 | AF-017-B | Submission eligibility package: license/distribution decision, notices, third-party/asset audit, public/private judging-access decision | **BLOCKED** | Owner chooses license/distribution route; AF-008 lineage preserved; BW-G05/BW-G09 | — |
 | AF-017-C | Judge-safe synthetic demo mode and deterministic fixtures; no dependency on private Forgejo, tokens, hosts, or agent endpoints | **PLANNED** | AF-009 synthetic config; exact-head and provenance semantics preserved; privacy tests | — |
 | AF-017-D | Coherent golden-path product polish for Home → PR → agent feedback → head change → guarded re-review; responsive Web presentation and accessibility smoke coverage | **PLANNED** | AF-017-C; do not claim unimplemented diff/check or production MCP capabilities | — |
@@ -233,4 +235,5 @@ AF-017 may move to **DONE** only when:
   and owner gates, eight-PR ledger, judging/demo contract, risks, daily
   checkpoints, verification protocol, and Definition of Done. No eligibility,
   license, model/session, hosting, video, or submission action is claimed
-  complete. Tracker bootstrap is in review as Forgejo #9.
+  complete. Tracker bootstrap shipped through Forgejo #9 as `798b563` from
+  verified tip `0b098a8`; Forgejo and GitHub `main` were synchronized.
