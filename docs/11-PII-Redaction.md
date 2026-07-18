@@ -274,9 +274,17 @@ if (local.exists()) local.inputStream().use { props.load(it) } // override
 #include? "AgentForge.local.xcconfig"   // optional real override (gitignore)
 ```
 
-Generator with real config writes **only** the gitignored `*.local.*`
-override files (or rewrites workspace copies of selected files under the
-same commit policy as Dart). It never depends on a missing required include.
+**Generator write rule (unconditional for natives — review 256):**
+
+| Output | With synthetic / example config | With real `AGENTFORGE_CONFIG` |
+|---|---|---|
+| `app_config.selected.dart` | Rewrite to synthetic (matches git) | May rewrite workspace for the build; **must not be committed** (synthetic-origin / PII gate) |
+| `agentforge-config.properties` | Never rewritten away from tracked synthetic | **Never overwritten.** Real values go only to `agentforge-config.local.properties` |
+| `ios/Flutter/AgentForge.xcconfig` | Never rewritten away from tracked synthetic | **Never overwritten.** Real values go only to `AgentForge.local.xcconfig` |
+| Entitlements (see §6.2) | Tracked synthetic `Runner.entitlements` | Real Associated Domains host only via gitignored generated entitlements + local xcconfig override of `CODE_SIGN_ENTITLEMENTS` |
+
+Tracked native defaults **always remain synthetic in git**. Real generation must not
+rewrite them “as an escape hatch.”
 
 #### Commands
 
@@ -378,11 +386,24 @@ This repo today:
    ```
 
 4. Optional real overrides go only in gitignored
-   `AgentForge.local.xcconfig` (e.g. debug-only flags). Associated Domains
-   host content is generated into a **tracked template + build-time fill**
-   or a gitignored entitlement sidecar documented in CONFIGURATION.md—not
-   by overwriting Flutter `Generated.xcconfig`.
-5. **Never** write into `ios/Flutter/Generated.xcconfig`.
+   `AgentForge.local.xcconfig` (non-identity flags and, for real builds,
+   `CODE_SIGN_ENTITLEMENTS` — see below).
+5. **Associated Domains / entitlements path (decided — review 256):**
+   - `CODE_SIGN_ENTITLEMENTS` defaults to tracked
+     `ios/Runner/Runner.entitlements` (already the project setting).
+   - That tracked file holds the **synthetic** applinks host
+     (`applinks:forge.example.test`) so a clean clone codesigns/configures
+     without private FQDN.
+   - Real/release generation writes **only** the gitignored file
+     `ios/Runner/Runner.entitlements.local` with the real
+     `applinks:<host>` entry (and any other real entitlement keys).
+   - Real/release also writes gitignored `AgentForge.local.xcconfig`
+     containing:
+     `CODE_SIGN_ENTITLEMENTS=Runner/Runner.entitlements.local`
+     so the optional include overrides the default for that build only.
+   - **Never** overwrite Flutter `Generated.xcconfig`, and **never** put the
+     real host into the tracked `Runner.entitlements`.
+6. **Never** write into `ios/Flutter/Generated.xcconfig`.
 
 **Verification:** `xcodebuild -showBuildSettings` for **Runner** and
 **RunnerTests** shows the two distinct bundle IDs above; plists/AASA parse
