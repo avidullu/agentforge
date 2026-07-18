@@ -50,7 +50,7 @@ Future<void> _handle(
   if (path == '/active-work' && request.method == 'GET') {
     _json(request, [
       {
-        'repo': 'Khelsutra/badminton-highlight-indexer',
+        'repo': 'owner/demo-repo',
         'pr_number': 623,
         'branch': 'docs/golden-eval',
         'title': 'docs: first human-golden eval report',
@@ -58,7 +58,7 @@ Future<void> _handle(
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       },
       {
-        'repo': 'Khelsutra/rally-corpus-vault',
+        'repo': 'owner/other-repo',
         'pr_number': 25,
         'branch': 'fix/post-review',
         'title': 'fix: post-review polish',
