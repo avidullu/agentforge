@@ -103,12 +103,6 @@ List<PiiHit> scanStructuralHttps({
   String repoRoot = '',
 }) {
   final hits = <PiiHit>[];
-  // Capture whole literal; do not truncate at `@` / `?` / `#` (review 264).
-  final httpsRe = RegExp(
-    r'''https://[^\s"'<>\)\]\},]+''',
-    caseSensitive: false,
-  );
-
   for (final file in files) {
     if (!file.existsSync()) continue;
     final rel = repoRoot.isEmpty ? file.path : _relPath(file.path, repoRoot);
@@ -118,14 +112,31 @@ List<PiiHit> scanStructuralHttps({
     } catch (_) {
       continue;
     }
-    for (var i = 0; i < lines.length; i++) {
-      for (final match in httpsRe.allMatches(lines[i])) {
-        final url = match.group(0)!;
-        if (_isAllowedHttpsLiteral(url)) continue;
-        hits.add(
-          PiiHit(path: rel, line: i + 1, patternLabel: 'structural-https'),
-        );
-      }
+    hits.addAll(scanStructuralHttpsLines(path: rel, lines: lines));
+  }
+  return hits;
+}
+
+/// Structural scan over already-loaded [lines].
+///
+/// Shared by the worktree scan and the staged-blob scan so a pre-commit guard
+/// and CI can never diverge on what counts as an allowed literal.
+List<PiiHit> scanStructuralHttpsLines({
+  required String path,
+  required List<String> lines,
+}) {
+  // Capture whole literal; do not truncate at `@` / `?` / `#` (review 264).
+  final httpsRe = RegExp(
+    r'''https://[^\s"'<>\)\]\},]+''',
+    caseSensitive: false,
+  );
+  final hits = <PiiHit>[];
+  for (var i = 0; i < lines.length; i++) {
+    for (final match in httpsRe.allMatches(lines[i])) {
+      if (_isAllowedHttpsLiteral(match.group(0)!)) continue;
+      hits.add(
+        PiiHit(path: path, line: i + 1, patternLabel: 'structural-https'),
+      );
     }
   }
   return hits;
@@ -165,14 +176,105 @@ bool _isAllowedHttpsLiteral(String url) {
 
 /// List tracked files via `git ls-files -z` (NUL-safe).
 List<File> listTrackedFiles(Directory repoRoot) {
+  return _gitNulPaths(repoRoot, const ['ls-files', '-z'], 'git ls-files')
+      .map((p) => File('${repoRoot.path}${Platform.pathSeparator}$p'))
+      .where((f) => f.existsSync())
+      .toList();
+}
+
+/// Repo-relative paths staged for commit (added/copied/modified/renamed).
+///
+/// Deletions are excluded: a removed blob cannot leak anything.
+List<String> listStagedPaths(Directory repoRoot) {
+  return _gitNulPaths(repoRoot, const [
+    'diff',
+    '--cached',
+    '--name-only',
+    '-z',
+    '--diff-filter=ACMR',
+  ], 'git diff --cached');
+}
+
+/// Read the *staged* (index) content of [path], not the worktree copy.
+///
+/// The distinction is the whole point of the pre-commit guard: `git add` snapshots
+/// content into the index, so a later worktree edit must not hide what is about
+/// to be committed. Returns null for binary/unreadable blobs.
+String? readStagedBlob(Directory repoRoot, String path) {
   final result = Process.runSync(
     'git',
-    ['ls-files', '-z'],
+    ['show', ':$path'],
+    workingDirectory: repoRoot.path,
+    stdoutEncoding: null,
+  );
+  if (result.exitCode != 0) return null;
+  final raw = result.stdout;
+  final bytes = raw is List<int> ? raw : utf8.encode(raw as String);
+  if (bytes.contains(0)) return null; // binary
+  try {
+    return utf8.decode(bytes);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Tracked files that `tool/generate_config.dart` rewrites.
+///
+/// These are the only tracked paths whose HTTPS literals come from build config
+/// rather than from prose, so they are the only place the structural rule can be
+/// enforced without drowning in false positives (doc links, pubspec.lock URLs,
+/// and the scanner's own regex all contain non-synthetic `https://` literals).
+const List<String> kGeneratedTrackedConfigPaths = [
+  'lib/core/config/generated/app_config.selected.dart',
+  'agentforge-config.properties',
+  'ios/Flutter/AgentForge.xcconfig',
+];
+
+/// Gitignored files holding real config. Staging one (`git add -f`) is always
+/// a mistake — they must never enter history.
+const List<String> kNeverCommitConfigPaths = [
+  'config/agentforge.config.json',
+  'agentforge-config.local.properties',
+  'ios/Flutter/AgentForge.local.xcconfig',
+  'ios/Runner/Runner.entitlements.local',
+];
+
+/// Staged paths that must never be committed at all.
+List<String> stagedNeverCommitPaths(Directory repoRoot) {
+  final staged = listStagedPaths(repoRoot).toSet();
+  return kNeverCommitConfigPaths.where(staged.contains).toList();
+}
+
+/// Structural scan of staged content, optionally limited to [limitTo].
+List<PiiHit> scanStagedStructuralHttps(
+  Directory repoRoot, {
+  Iterable<String>? limitTo,
+}) {
+  final allowed = limitTo?.toSet();
+  final hits = <PiiHit>[];
+  for (final path in listStagedPaths(repoRoot)) {
+    if (allowed != null && !allowed.contains(path)) continue;
+    final content = readStagedBlob(repoRoot, path);
+    if (content == null) continue;
+    hits.addAll(
+      scanStructuralHttpsLines(
+        path: path,
+        lines: const LineSplitter().convert(content),
+      ),
+    );
+  }
+  return hits;
+}
+
+List<String> _gitNulPaths(Directory repoRoot, List<String> args, String label) {
+  final result = Process.runSync(
+    'git',
+    args,
     workingDirectory: repoRoot.path,
     stdoutEncoding: null,
   );
   if (result.exitCode != 0) {
-    throw StateError('git ls-files failed');
+    throw StateError('$label failed');
   }
   final raw = result.stdout;
   final bytes = raw is List<int> ? raw : utf8.encode(raw as String);
@@ -189,11 +291,7 @@ List<File> listTrackedFiles(Directory repoRoot) {
     }
   }
   if (chunk.isNotEmpty) parts.add(utf8.decode(chunk));
-
-  return parts
-      .map((p) => File('${repoRoot.path}${Platform.pathSeparator}$p'))
-      .where((f) => f.existsSync())
-      .toList();
+  return parts;
 }
 
 /// List files under a directory (fixture roots).
