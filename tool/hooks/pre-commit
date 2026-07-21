@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# AgentForge pre-commit guard (AF-019).
+#
+# Blocks a commit that stages a non-synthetic HTTPS origin — most importantly
+# lib/core/config/generated/app_config.selected.dart, which is tracked but is
+# rewritten with the REAL Forgejo origin by `dart run tool/generate_config.dart`.
+#
+# CI already fails on this, but CI only runs AFTER a push, and this repository
+# has a public GitHub mirror. This hook is the only check that runs before the
+# content can leave the machine.
+#
+# Install: bash tool/hooks/install.sh   (sets core.hooksPath=tool/hooks)
+# Bypass:  git commit --no-verify       (intentionally still possible)
+set -Eeuo pipefail
+
+repo_root=$(git rev-parse --show-toplevel)
+cd -- "$repo_root"
+
+# Resolve a Dart SDK. A guard that silently skips when its interpreter is
+# missing is worse than no guard: it fails open exactly when it is needed.
+# `dart` is frequently absent from PATH even where `flutter` is present.
+resolve_dart() {
+  if command -v dart >/dev/null 2>&1; then
+    command -v dart
+    return 0
+  fi
+  local flutter_bin
+  if flutter_bin=$(command -v flutter 2>/dev/null); then
+    # `flutter` on PATH is very often a symlink into the SDK (e.g. from
+    # /usr/local/bin), so derive the SDK root from the RESOLVED path.
+    if command -v readlink >/dev/null 2>&1; then
+      flutter_bin=$(readlink -f -- "$flutter_bin" 2>/dev/null || printf '%s' "$flutter_bin")
+    fi
+    local bundled
+    bundled="$(dirname -- "$flutter_bin")/cache/dart-sdk/bin/dart"
+    if [[ -x $bundled ]]; then
+      printf '%s\n' "$bundled"
+      return 0
+    fi
+  fi
+  return 1
+}
+
+if ! dart_bin=$(resolve_dart); then
+  cat >&2 <<'EOF'
+pre-commit: BLOCKED — no Dart SDK found, so the PII guard cannot run.
+
+  This hook fails closed on purpose. Put `dart` (or `flutter`) on PATH, then
+  retry. If you are certain nothing private is staged:
+
+    git commit --no-verify
+EOF
+  exit 1
+fi
+
+if ! "$dart_bin" run tool/check_no_pii.dart --mode=structural --scope=staged; then
+  cat >&2 <<'EOF'
+
+pre-commit: BLOCKED — a private origin is staged for commit.
+
+  Most likely cause: you ran `dart run tool/generate_config.dart` with a real
+  config/agentforge.config.json, which rewrites the tracked file
+  lib/core/config/generated/app_config.selected.dart with your real host.
+
+  To fix:
+    git restore --staged lib/core/config/generated/app_config.selected.dart
+
+  That file is expected to stay DIRTY in a working tree configured for a real
+  instance. Only its synthetic form may be committed.
+EOF
+  exit 1
+fi

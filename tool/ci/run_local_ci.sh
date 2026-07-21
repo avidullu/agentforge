@@ -243,7 +243,15 @@ run_quality() {
   bash -n tool/ci/test_install_android_sdk.sh
   bash -n tool/ci/run_local_ci.sh
   bash -n tool/ci/setup_flutter.sh
+  bash -n tool/deploy_web.sh
+  bash -n tool/hooks/pre-commit
+  bash -n tool/hooks/install.sh
   bash tool/ci/test_heartbeat.sh
+  step_ok
+
+  step "staged-PII guard is wired and fails closed"
+  # Same check the pre-commit hook runs; on a clean CI index it must pass.
+  dart run tool/check_no_pii.dart --mode=structural --scope=staged
   step_ok
 
   step "final tracked-tree cleanliness"
@@ -365,6 +373,7 @@ quality:
   - changed-line coverage floor
   - PII report-only inventory
   - CI shell script smokes (no real SDK install)
+  - staged-PII guard is wired and fails closed
   - final tracked-tree cleanliness
 
 build-smoke:

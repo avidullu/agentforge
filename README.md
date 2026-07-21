@@ -36,6 +36,7 @@ if no automated mirror job is configured.
 Required toolchain: Flutter 3.44.6+ / Dart 3.12+.
 
 ```bash
+bash tool/hooks/install.sh   # once per clone: pre-commit PII guard
 flutter pub get
 dart format --output=none --set-exit-if-changed lib test tool
 flutter analyze --fatal-infos
@@ -63,6 +64,7 @@ not a remote/tailnet server.
 - [Mobile design handoff review](docs/10-Mobile-Design-Handoff-Review.md)
 - [Agent endpoint/MCP target](docs/AGENT_MCP_CONTRACT.md)
 - [Deep-link setup and open gates](docs/DEEP_LINKING.md)
+- [Web PWA deployment on a tailnet (mobile without a Mac)](docs/WEB_PWA_DEPLOY.md)
 - [Architecture](docs/01-Vision-and-Architecture.md)
 
 ## Privacy and license

@@ -8,7 +8,8 @@ void main(List<String> args) {
   if (help) {
     stdout.writeln(
       'Usage: dart run tool/check_no_pii.dart --mode=report|blocklist|structural\n'
-      '       [--scope=tracked|fixture] [--root=<dir>] [--blocklist=<file>]\n'
+      '       [--scope=tracked|staged|fixture] [--root=<dir>] '
+      '[--blocklist=<file>]\n'
       '\n'
       'Modes:\n'
       '  report       Print hits; always exit 0 (S1 CI on real tree)\n'
@@ -17,6 +18,7 @@ void main(List<String> args) {
       '\n'
       'Scopes:\n'
       '  tracked      git ls-files -z (NUL-safe)\n'
+      '  staged       index content of files staged for commit (pre-commit)\n'
       '  fixture      recurse --root (default: test/config/fixtures)\n'
       '\n'
       'Blocklist file: --blocklist or \$AGENTFORGE_PII_BLOCKLIST\n',
@@ -30,6 +32,44 @@ void main(List<String> args) {
     final repoRoot = findRepoRoot();
     final rootFlag = _flag(args, 'root');
 
+    if (scope == 'staged') {
+      // Pre-commit guard: only the structural rule is meaningful against index
+      // blobs, and it must fail closed before anything can leave the machine.
+      if (mode != PiiMode.structural) {
+        stderr.writeln('--scope=staged requires --mode=structural');
+        exitCode = 64;
+        return;
+      }
+      final forbidden = stagedNeverCommitPaths(repoRoot);
+      // Scoped to the generator's tracked outputs: elsewhere in the tree a
+      // non-synthetic https literal is normally a doc link, not a config leak.
+      final staged = scanStagedStructuralHttps(
+        repoRoot,
+        limitTo: kGeneratedTrackedConfigPaths,
+      );
+      if (forbidden.isEmpty && staged.isEmpty) {
+        stdout.writeln('PII structural: clean (scope=staged)');
+        exitCode = 0;
+        return;
+      }
+      for (final path in forbidden) {
+        stderr.writeln(
+          'PII structural: $path holds real config and must never be committed',
+        );
+      }
+      if (staged.isNotEmpty) {
+        stderr.writeln(
+          'PII structural: ${staged.length} non-synthetic HTTPS origin(s) '
+          'staged in generated config. Unstage them before committing:',
+        );
+        for (final h in staged) {
+          stderr.writeln('  $h');
+        }
+      }
+      exitCode = 1;
+      return;
+    }
+
     final List<File> files;
     if (scope == 'tracked') {
       files = listTrackedFiles(repoRoot);
@@ -39,7 +79,7 @@ void main(List<String> args) {
       );
       files = listFilesRecursive(root);
     } else {
-      stderr.writeln('Unknown --scope=$scope (use tracked|fixture)');
+      stderr.writeln('Unknown --scope=$scope (use tracked|staged|fixture)');
       exitCode = 64;
       return;
     }
